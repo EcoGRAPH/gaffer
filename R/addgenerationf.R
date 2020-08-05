@@ -38,7 +38,7 @@ addgenerationf <- function(models=NULL,
                           individualspergeneration=10,
                           covariatenames=NULL,
                           adjacency=NULL,
-                          numberofcovnts = NULL,
+                          numofcovnts = NULL,
                           mutationprobabilities=c(0.60, 0.30, 0.05, 0.05),
                           mutationtypes=c("deletenode", "addnode", "recruit", "mutatevariables")) {
   
@@ -59,7 +59,7 @@ addgenerationf <- function(models=NULL,
                             prob=mutationprobabilities)
   newgen$mutation <- mutationtypes[newgen$mutation]
   
-  covts <- paste0("cov",seq(1:numberofcovnts))
+  covts <- paste0("cov",seq(1:numofcovnts))
   
   
   # for each new child, mutate as chosen above
@@ -143,10 +143,10 @@ addgenerationf <- function(models=NULL,
   newgen$modelnumber <- 1:nrow(newgen)
   
   # evaluate new generation
-  newgen$modelmeasure <- evaluategeneration1(models=newgen,
+  newgen$modelmeasure <- evaluategenerationf(models=newgen,
                                             modeldata=mal,
                                             adjacency=adjacency,
-                                            numberofcovnts = numofcovnts)
+                                            numofcovnts = numofcovnts)
   # rank models
   newgen$selectionprobability <- rank(newgen$modelmeasure, ties.method="random")
   newgen$selectionprobability <- 1/newgen$selectionprobability / sum(1/newgen$selectionprobability, na.rm=TRUE)
