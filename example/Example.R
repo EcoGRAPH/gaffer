@@ -24,7 +24,7 @@ nprincomps <- 5
 
 # load the harmonized weekly data
 mal <- read.csv("robust weekly malaria.csv")
-head(mal)
+
 
 # make sure each observation corresponds to a time and a place
 mal$date <- as.Date(mal$date, "%Y-%m-%d")
@@ -32,7 +32,7 @@ mal$doy  <- as.numeric(format(mal$date, "%j"))
 mal$placeid <- mal$NewPCODE
 mal$NewPCODE <- NULL
 mal <- mal[!is.na(mal$placeid),]
-head(mal)
+
 
 # include the environmental data
 env_brdf <- read.csv("Allbrdf2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
@@ -53,7 +53,7 @@ if (!is.null(whichregion)) {
   mal <- mal[mal$placeid %in% woredanames$NewPCODE,]
   
 }
-head(mal)
+
 # create an adjacency matrix
 shp <- sf::st_read("Eth_Admin_Woreda_2019_20200205.shp")
 
@@ -74,7 +74,7 @@ env$date <- as.Date(paste(env$year,
                           env$doy,
                           sep="-"),
                     "%Y-%j")
-print(env)
+
 # make sure we have
 env <- env[!is.na(env$placeid),]
 env <- env[!is.na(env$date),]
@@ -83,13 +83,12 @@ env <- env[!is.na(env$date),]
 envnames <- colnames(env)
 envnames <- envnames[!(envnames %in% c("placeid", "date", "year", "doy"))]
 
-print(envnames)
 
 # lag the environmental data
 datalagger <- expand.grid(placeid=unique(mal$placeid),
                           date=unique(mal$date),
                           lag=seq(from=0, to=laglen-1, by=1))
-print(datalagger)
+
 datalagger$date-datalagger$lag
 datalagger$lag
 datalagger$date
@@ -98,14 +97,12 @@ datalagger <- left_join(datalagger, env,
                         by=c("placeid"="placeid",
                              "laggeddate"="date"))
 
-envnames
-datalagger
 
 for (curenv in envnames) {
   
   # pivot environmental data by lag
   envlagged <- dcast(datalagger, placeid + date ~ lag, value.var=curenv)
-  print(envlagged)
+  
   names(envlagged) <- paste(curenv,names(envlagged),sep="_")
   
   # join to malaria data
@@ -127,9 +124,8 @@ for (curenv in envnames) {
   mal[,grep(x=colnames(mal), pattern=paste(curenv, "_", sep=""), fixed=TRUE)] <- NULL
   
 }
-mal
 
-names(mal)
+
 
 # the genetic algorithm
 # determine which variable we're modeling
