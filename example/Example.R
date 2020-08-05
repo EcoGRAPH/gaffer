@@ -135,3 +135,17 @@ names(mal)
 # determine which variable we're modeling
 mal$objective <- mal$robustified1
 mal
+
+
+
+####Genetic algorithm calling
+
+geneticimplement(
+  individpergeneration = 10,
+  initialclusters      = 4,
+  generations          = 3,
+  modeldata = mal,
+  envdata = env,
+  shapefile = shp,
+  whichregion = "Amhara",
+  numofcovnts = 3)
