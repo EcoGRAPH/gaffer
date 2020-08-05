@@ -2,7 +2,7 @@
 evaluategenerationf <- function(models=NULL,
                                modeldata=NULL,
                                adjacency=NULL,
-                               numberofcovnts = NULL) {
+                               numofcovnts = NULL) {
   
   
   # make sure we start from scratch
@@ -21,7 +21,7 @@ evaluategenerationf <- function(models=NULL,
   #                       s(doy, bs='cc', id=2) +
   #                      cov1 + cov2 + cov3")
   
-  covts <- paste0("cov",seq(1:numberofcovnts))
+  covts <- paste0("cov",seq(1:numofcovnts))
   
   
   #print(covts)
@@ -56,7 +56,7 @@ evaluategenerationf <- function(models=NULL,
   #                     s(doy, id=2) +
   #                     cov1 + cov2 + cov3")
   
-  myfallbackformula
+
   myfallbackformula1
   
   # run batch_bam on all the models
