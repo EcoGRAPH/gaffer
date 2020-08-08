@@ -4,12 +4,12 @@
 geneticimplement<- function(
   individpergeneration = NULL,
   initialclusters      = NULL,
-  generations          =  NULL, 
-  modeldata = mal,
-  envdata = env,
-  shapefile = shp,
-  whichregion = whichregion,
-  numofcovnts = numofcovnts
+  generations          =  NULL,
+  modeldata = NULL,
+  envdata = NULL,
+  shapefile = NULL,
+  whichregion = NULL,
+  numofcovnts = NULL
 )
 {
   
