@@ -25,8 +25,6 @@ geneticimplement<- function(
   adjacency2 <- adjacency
   adjacency <- adjacency[adjacency$NewPCODE %in% modeldata$placeid,]
   savenames <- adjacency$NewPCODE
-  print(modeldata$placeid)
-  print(adjacency)
   adjacency <- nb2listw(poly2nb(adjacency, queen=TRUE, row.names=adjacency$NewPCODE),
                         style="B")
   print(adjacency)
