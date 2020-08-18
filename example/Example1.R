@@ -4,7 +4,7 @@ packages <- c("ggplot2", "plyr", "dplyr",
               "tidyverse", "reshape2", "pracma",
               "mgcv", "splines", "parallel", "splitstackshape",
               "data.table", "quantreg", "MASS",
-              "sf", "maptools", "spdep", "igraph","gaffar")
+              "sf", "maptools", "spdep", "igraph","gaffer")
 for (package in packages) {
   if (!require(package, character.only=T, quietly=T)) {
     install.packages(package, install.packages(package, repos = "http://cran.us.r-project.org"))
@@ -24,10 +24,24 @@ options(warn=-1)
 
 # load the harmonized weekly data
 mal <- read.csv("robust weekly malaria.csv")
-head(mal)
+head(mal$date)
+
+IsDates <- function(mydate, date.format = "%Y-%m-%d") {
+  tryCatch(!is.na(as.Date(mydate, date.format)),
+           error = function(err) {FALSE})
+}
 
 # make sure each observation corresponds to a time and a place
-mal$date <- as.Date(mal$date, "%Y-%m-%d")
+if (IsDates(mal$date[1]) == FALSE) {
+  mal$date <- as.Date(mal$date, format='%m/%d/%Y')
+}
+
+if (IsDates(mal$date[1]) == TRUE) {
+  mal$date <- as.Date(mal$date, format="%Y-%m-%d")
+}
+#mal$date <- as.Date(mal$date, format='%m/%d/%Y')
+
+mal
 mal$doy  <- as.numeric(format(mal$date, "%j"))
 mal$placeid <- mal$NewPCODE
 mal$NewPCODE <- NULL
@@ -47,14 +61,15 @@ woredanames <- env_brdf[c("NewPCODE",
                           "Z_NAME")]
 table(env_brdf$R_NAME)
 if (!is.null(whichregion)) {
-  
+
   woredanames <- woredanames[woredanames$R_NAME == whichregion,]
   print(woredanames)
   mal <- mal[mal$placeid %in% woredanames$NewPCODE,]
-  
+
 }
 head(mal)
 # create an adjacency matrix
+#shp <- sf::st_read("Eth_Admin_Woreda_2019_20200702.shp")
 shp <- sf::st_read("Eth_Admin_Woreda_2019_20200205.shp")
 
 
@@ -80,13 +95,14 @@ env <- env[!is.na(env$placeid),]
 env <- env[!is.na(env$date),]
 
 
-
+mal
+env
 # Data lagging process
-data <- dataprocessing(laglen   = 181,
-                       dlagdeg  = 8,
-                       nprincomps =5,
-                       modeldata = mal,
-                       env = env)
+data <- gaffer::dataprocessing(laglen   = 181,
+                               dlagdeg  = 8,
+                               nprincomps =5,
+                               modeldata = mal,
+                               env = env)
 
 
 mal <- as.data.frame(data[1])
@@ -97,11 +113,10 @@ mal$objective <- mal$robustified1
 head(mal)
 
 ####Genetic algorithm calling
-
 geneticimplement(
-  individpergeneration = 10,
-  initialclusters      = 4,
-  generations          = 3,
+  individpergeneration = 5,
+  initialclusters      = 5,
+  generations          = 5,
   modeldata = mal,
   envdata = env,
   shapefile = shp,
