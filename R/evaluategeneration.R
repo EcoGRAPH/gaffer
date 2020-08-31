@@ -1,6 +1,7 @@
 evaluategeneration <- function(models=NULL,
                                modeldata=NULL,
-                               adjacency=NULL) {
+                               adjacency=NULL,
+                               placeids=NULL) {
 
   # make sure we start from scratch
   models$modelmeasure <- Inf
@@ -26,7 +27,7 @@ evaluategeneration <- function(models=NULL,
     for (i in 1:(length(curclusterseeds)/2)) {
 
       curclusters$placeid[i] <- curclusters[1+2*(i-1)]
-      curclusters$cluster    <- as.numeric(curclusters[2*i])
+      curclusters$cluster[i] <- as.numeric(curclusters[2*i])
 
     }
     curclusters$cluster <- factor(curclusters$cluster)
@@ -41,15 +42,10 @@ evaluategeneration <- function(models=NULL,
                           sep="",
                           collapse="+")
 
-
-
-
-
-
-
-    # put current clusters into model data
-    curclusters <- data.frame(cluster = models$clustermat[curmodelnum,],
-                              placeid = colnames(models$clustermat))
+    # fill in the missing placeids with NAs
+    curclusters <- left_join(data.frame(placeid=placeids),
+                             curclusters)
+    # then propagate
     curclusters$cluster <- fillbynearest(adjacency=adjacency,
                                          covariate=models$clustermat[curmodelnum,])
     modeldata <- left_join(modeldata,
@@ -73,9 +69,6 @@ evaluategeneration <- function(models=NULL,
       #print(modelfit)
       myAICs <- extractAIC.batch_bam(models=modelfit)
       models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (log(nrow(modeldata)) - 2)*sum(myAICs[,1])
-
-      # models$modelmeasure[curmodelnum] <- sum(extractAIC.batch_bam(models=modelfit)[,2])
-      # models$df <- sum(extract)
 
       # try cleaning up
       rm(modelfit)
