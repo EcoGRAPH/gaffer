@@ -46,9 +46,10 @@ evaluategeneration <- function(models=NULL,
     curclusters <- left_join(data.frame(placeid=placeids),
                              curclusters,
                              by="placeid")
+
     # then propagate
     curclusters$cluster <- fillbynearest(adjacency=adjacency,
-                                         covariate=curclusters)
+                                         covariate=curclusters$cluster)
     modeldata <- left_join(modeldata,
                            curclusters,
                            by="placeid")
