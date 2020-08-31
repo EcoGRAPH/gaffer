@@ -8,8 +8,6 @@ geneticimplement <- function(individpergeneration = NULL,
                              numofcovnts = NULL ) {
 
   adjacency <- shapefile
-  print(typeof(adjacency))
-  #print(adjacency)
 
   if (!is.null(whichregion)) {
 
