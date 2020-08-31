@@ -1,7 +1,6 @@
 evaluategeneration <- function(models=NULL,
                                modeldata=NULL,
-                               adjacency=NULL,
-                               numofcovnts = NULL) {
+                               adjacency=NULL) {
 
   # make sure we start from scratch
   models$modelmeasure <- Inf
@@ -11,52 +10,46 @@ evaluategeneration <- function(models=NULL,
   modeldata$numdate <- as.numeric(modeldata$date)
   modeldata$doy     <- as.numeric(format(modeldata$date, "%j"))
 
-  covts <- paste0("cov",seq(1:numofcovnts))
-
-
-  #print(covts)
-
-  z = as.factor(paste(covts,collapse="+"))
-
-  y = paste("objective ~ placeid","s(numdate, by=placeid, id=1)","s(doy, id=2)",z, sep = "+")
-
- # print(y)
-  myformula1 <- formula(y)
-
-  #isTRUE(myformula == myformula1)
-
-
-  #myformula <- formula("objective ~ placeid +
- #                       s(numdate, by=placeid, id=1) +
-  #                      s(doy, id=2) +
-  #                      cov1 + cov2 + cov3")
-
-
-  myformula1
-
-
-  y1 = paste("objective ~ s(numdate, id=1)","s(doy, id=2)",z, sep = "+")
-
-  #print(y1)
-  #myformula1 <- formula(y)
-  myfallbackformula1 <- formula(y1)
-
-
-  #myfallbackformula <- formula("objective ~ s(numdate, id=1) +
-  #                     s(doy, id=2) +
-  #                     cov1 + cov2 + cov3")
-
-
-  myfallbackformula1
+  # create the basic formula
+  baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2)"
+  basefallback <- "objective ~ s(numdate, id=1) + s(doy, bs='cc', id=2)"
 
   # run batch_bam on all the models
-  #print(models$clustermat)
   for (curmodelnum in 1:nrow(models)) {
+
+    # get the cluster seeds
+    curclusterseeds <- unlist(strsplit(x=models$clusterseeds,
+                                       split=",",
+                                       fixed=TRUE))
+    curclusters <- data.frame(placeid=rep("", length(curclusterseeds)/2),
+                              cluster=rep(0 , length(curclusterseeds)/2))
+    for (i in 1:(length(curclusterseeds)/2)) {
+
+      curclusters$placeid[i] <- curclusters[1+2*(i-1)]
+      curclusters$cluster    <- as.numeric(curclusters[2*i])
+
+    }
+    curclusters$cluster <- factor(curclusters$cluster)
+
+    # get the covariates
+    curcovars <- unlist(strsplit(x=models$covars,
+                                 split=",",
+                                 fixed=TRUE))
+    covarformula <- paste("s(",
+                          curcovars,
+                          ", by=lagmat, bs='tp')",
+                          sep="",
+                          collapse="+")
+
+
+
+
+
+
 
     # put current clusters into model data
     curclusters <- data.frame(cluster = models$clustermat[curmodelnum,],
                               placeid = colnames(models$clustermat))
-    #print(curclusters)
     curclusters$cluster <- fillbynearest(adjacency=adjacency,
                                          covariate=models$clustermat[curmodelnum,])
     modeldata <- left_join(modeldata,
@@ -66,27 +59,6 @@ evaluategeneration <- function(models=NULL,
     # make sure our factors are indeed factors
     modeldata$cluster <- factor(modeldata$cluster)
     modeldata$placeid <- factor(modeldata$placeid)
-
-    #print(modeldata)
-    # figure out which covariates we need
-
-
-
-
-
-   # print(models$cov1[curmodelnum])
-   # print(head(models))
-    for (j in covts){
-     #print(models[,j][curmodelnum])
-      modeldata[j] <- modeldata[,models[,j][curmodelnum]]
-    }
-
-    #print(head(modeldata))
-    #modeldata$cov1 <- modeldata[,models$cov1[curmodelnum]]
-    #modeldata$cov2 <- modeldata[,models$cov2[curmodelnum]]
-    #modeldata$cov3 <- modeldata[,models$cov3[curmodelnum]]
-
-    #print(head(modeldata))
 
     tryCatch({
 

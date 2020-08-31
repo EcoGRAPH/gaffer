@@ -4,18 +4,17 @@ geneticimplement <- function(individpergeneration = NULL,
                              generations          = NULL,
                              modeldata            = NULL,
                              envdata              = NULL,
-                             shapefile            = NULL,
-                             numofcovnts          = NULL) {
+                             shapefile            = NULL) {
 
   adjacency <- shapefile
 
   # retain only those shapes that appear in the model data
-  # adjacencey newpcode shouldn't be hardcoded - needs fixes throughout
-  adjacency <- adjacency[adjacency$NewPCODE %in% unique(modeldata$placeid),]
+  adjacency <- adjacency[adjacency$placeid %in% unique(modeldata$placeid),]
   adjacency <- nb2listw(poly2nb(adjacency,
                                 queen=TRUE,
                                 row.names=adjacency$NewPCODE),
                         style="B")
+
 
   # set up the first generation of models
   modelsdf <- data.frame(generation=1,
@@ -47,6 +46,7 @@ geneticimplement <- function(individpergeneration = NULL,
 
   }
 
+  # set up initial model measures
   modelsdf$modelmeasure <- Inf
   modelsdf$selectionprobability <- 1
   modelsdf$generation <- 1

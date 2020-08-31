@@ -49,6 +49,8 @@ if (!is.null(whichregion)) {
 }
 # create an adjacency matrix
 shp <- sf::st_read("Eth_Admin_Woreda_2019_20200205.shp")
+shp$placeid <- shp$NewPCODE
+shp$NewPCODE <- NULL
 
 env_brdf[c("X", "R_NAME", "W_NAME", "Z_NAME")] <- NULL
 env_prec[c("X", "R_NAME", "W_NAME", "Z_NAME")] <- NULL
@@ -86,9 +88,8 @@ mal$objective <- mal$robustified1
 geneticimplement(
   individpergeneration = 5,
   initialclusters      = 5,
+  initialcovars        = 2,
   generations          = 5,
   modeldata = mal,
   envdata = env,
-  shapefile = shp,
-  whichregion = "Amhara",
-  numofcovnts = 3)
+  shapefile = shp)
