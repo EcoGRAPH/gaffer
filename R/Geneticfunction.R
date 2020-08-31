@@ -108,20 +108,14 @@ geneticimplement<- function(
   modelsdf1$selectionprobability <- 1
   modelsdf1$generation <- 1
 
-  modelsdf1
-
-
   # evaluate the first generation
-
-
-  modelsdf1$modelmeasure <- evaluategenerationf(models=modelsdf1,
-                                                modeldata=mal,
-                                                adjacency=adjacency,
-                                                numofcovnts = numofcovnts)
+  modelsdf1$modelmeasure <- evaluategeneration(models=modelsdf1,
+                                               modeldata=mal,
+                                               adjacency=adjacency,
+                                               numofcovnts = numofcovnts)
 
   print("First generation evaluated")
   # rank models
-  modelsdf1$modelmeasure
   modelsdf1$selectionprobability <- rank(modelsdf1$modelmeasure, ties.method="random")
   modelsdf1$selectionprobability <- 1/modelsdf1$selectionprobability / sum(1/modelsdf1$selectionprobability, na.rm=TRUE)
   modelsdf1$selectionprobability[is.na(modelsdf1$selectionprobability)] <- 0
