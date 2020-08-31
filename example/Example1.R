@@ -4,7 +4,8 @@ packages <- c("ggplot2", "plyr", "dplyr",
               "tidyverse", "reshape2", "pracma",
               "mgcv", "splines", "parallel", "splitstackshape",
               "data.table", "quantreg", "MASS",
-              "sf", "maptools", "spdep", "igraph","gaffer")
+              "sf", "maptools", "spdep", "igraph","gaffer",
+              "clusterapply")
 for (package in packages) {
   if (!require(package, character.only=T, quietly=T)) {
     install.packages(package, install.packages(package, repos = "http://cran.us.r-project.org"))
@@ -12,41 +13,22 @@ for (package in packages) {
   }
 }
 
-library(clusterapply)
-
 options(warn=-1)
-
-# settings
-# set up lag and regression information
-#laglen   <- 181
-#dlagdeg  <- 8
-#nprincomps <- 5
 
 # load the harmonized weekly data
 mal <- read.csv("robust weekly malaria.csv")
-head(mal$date)
-
-IsDates <- function(mydate, date.format = "%Y-%m-%d") {
-  tryCatch(!is.na(as.Date(mydate, date.format)),
-           error = function(err) {FALSE})
-}
 
 # make sure each observation corresponds to a time and a place
-if (IsDates(mal$date[1]) == FALSE) {
+if (isDates(mal$date[1]) == FALSE) {
   mal$date <- as.Date(mal$date, format='%m/%d/%Y')
-}
-
-if (IsDates(mal$date[1]) == TRUE) {
+} else {
   mal$date <- as.Date(mal$date, format="%Y-%m-%d")
 }
-#mal$date <- as.Date(mal$date, format='%m/%d/%Y')
 
-mal
 mal$doy  <- as.numeric(format(mal$date, "%j"))
 mal$placeid <- mal$NewPCODE
 mal$NewPCODE <- NULL
 mal <- mal[!is.na(mal$placeid),]
-head(mal)
 
 # include the environmental data
 env_brdf <- read.csv("Allbrdf2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
@@ -59,19 +41,14 @@ woredanames <- env_brdf[c("NewPCODE",
                           "R_NAME",
                           "W_NAME",
                           "Z_NAME")]
-table(env_brdf$R_NAME)
 if (!is.null(whichregion)) {
 
   woredanames <- woredanames[woredanames$R_NAME == whichregion,]
-  print(woredanames)
   mal <- mal[mal$placeid %in% woredanames$NewPCODE,]
 
 }
-head(mal)
 # create an adjacency matrix
-#shp <- sf::st_read("Eth_Admin_Woreda_2019_20200702.shp")
 shp <- sf::st_read("Eth_Admin_Woreda_2019_20200205.shp")
-
 
 env_brdf[c("X", "R_NAME", "W_NAME", "Z_NAME")] <- NULL
 env_prec[c("X", "R_NAME", "W_NAME", "Z_NAME")] <- NULL
@@ -89,30 +66,23 @@ env$date <- as.Date(paste(env$year,
                           env$doy,
                           sep="-"),
                     "%Y-%j")
-print(env)
-# make sure we have
+# make sure we have time and place
 env <- env[!is.na(env$placeid),]
 env <- env[!is.na(env$date),]
 
-
-mal
-env
-# Data lagging process
+# data lagging process
 data <- gaffer::dataprocessing(laglen   = 181,
                                dlagdeg  = 8,
-                               nprincomps =5,
+                               nprincomps = 5,
                                modeldata = mal,
                                env = env)
-
-
 mal <- as.data.frame(data[1])
 env <- as.data.frame(data[2])
 
-
+# decide which variable we're modeling
 mal$objective <- mal$robustified1
-head(mal)
 
-####Genetic algorithm calling
+# call the genetic algorithm
 geneticimplement(
   individpergeneration = 5,
   initialclusters      = 5,

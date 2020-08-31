@@ -3,7 +3,6 @@ evaluategeneration <- function(models=NULL,
                                adjacency=NULL,
                                numofcovnts = NULL) {
 
-
   # make sure we start from scratch
   models$modelmeasure <- Inf
   models$selectionprobability <- 1
@@ -11,14 +10,6 @@ evaluategeneration <- function(models=NULL,
   # create some helpful covariates
   modeldata$numdate <- as.numeric(modeldata$date)
   modeldata$doy     <- as.numeric(format(modeldata$date, "%j"))
-
-  # set up the regression
-  # myformula <- formula("objective ~ placeid + s(numdate, by=placeid, id=1) +
-  #                       s(doy, bs='cc', id=2) +
-  #                      cov1 + cov2 + cov3")
-  # myfallbackformula <- formula("objective ~ s(numdate, id=1) +
-  #                       s(doy, bs='cc', id=2) +
-  #                      cov1 + cov2 + cov3")
 
   covts <- paste0("cov",seq(1:numofcovnts))
 

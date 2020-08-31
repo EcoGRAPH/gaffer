@@ -7,10 +7,7 @@ dataprocessing <- function(laglen   = NULL,
   datalagger <- expand.grid(placeid=unique(modeldata$placeid),
                             date=unique(modeldata$date),
                             lag=seq(from=0, to=laglen-1, by=1))
-  #print(datalagger)
-  datalagger$date-datalagger$lag
-  datalagger$lag
-  datalagger$date
+
   datalagger$laggeddate <- datalagger$date-datalagger$lag
   datalagger <- left_join(datalagger, env,
                           by=c("placeid"="placeid",

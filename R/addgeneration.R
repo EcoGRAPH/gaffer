@@ -76,18 +76,15 @@ addgeneration <- function(models=NULL,
     if (newgen$mutation[i] == "mutatevariables") {
 
       # resample the covariates
-      #print(newgen$cov1[i])
       for (j in covts){
-        # print(j)
         z = newgen[,j]
-        #print(z[i])
         z[i] <- sample(x=covariatenames, size=1)
       }
 
     }
 
     # put back in order, make sure we're not missing anything
-    newgen$clustermat[i,] <- forciblyrevalue(newgen$clustermat[i,])
+    newgen$clustermat[i,] <- gaffer::forciblyrevalue(newgen$clustermat[i,])
 
   }
 
