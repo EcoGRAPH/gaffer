@@ -73,13 +73,14 @@ env <- env[!is.na(env$placeid),]
 env <- env[!is.na(env$date),]
 
 # data lagging process
-data <- gaffer::dataprocessing(laglen   = 181,
+tempdf <- gaffer::dataprocessing(laglen   = 181,
                                dlagdeg  = 8,
                                nprincomps = 5,
                                modeldata = mal,
                                env = env)
-mal <- as.data.frame(data[1])
-env <- as.data.frame(data[2])
+mal <- as.data.frame(tempdf[1])
+env <- as.data.frame(tempdf[2])
+rm(tempdf)
 
 # decide which variable we're modeling
 mal$objective <- mal$robustified1

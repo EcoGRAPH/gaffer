@@ -19,15 +19,15 @@ evaluategeneration <- function(models=NULL,
   for (curmodelnum in 1:nrow(models)) {
 
     # get the cluster seeds
-    curclusterseeds <- unlist(strsplit(x=models$clusterseeds,
+    curclusterseeds <- unlist(strsplit(x=models$clusterseeds[curmodelnum],
                                        split=",",
                                        fixed=TRUE))
     curclusters <- data.frame(placeid=rep("", length(curclusterseeds)/2),
                               cluster=rep(0 , length(curclusterseeds)/2))
     for (i in 1:(length(curclusterseeds)/2)) {
 
-      curclusters$placeid[i] <- curclusters[1+2*(i-1)]
-      curclusters$cluster[i] <- as.numeric(curclusters[2*i])
+      curclusters$placeid[i] <- curclusterseeds[1+2*(i-1)]
+      curclusters$cluster[i] <- as.numeric(curclusterseeds[2*i])
 
     }
     curclusters$cluster <- factor(curclusters$cluster)
@@ -44,10 +44,11 @@ evaluategeneration <- function(models=NULL,
 
     # fill in the missing placeids with NAs
     curclusters <- left_join(data.frame(placeid=placeids),
-                             curclusters)
+                             curclusters,
+                             by="placeid")
     # then propagate
     curclusters$cluster <- fillbynearest(adjacency=adjacency,
-                                         covariate=models$clustermat[curmodelnum,])
+                                         covariate=curclusters)
     modeldata <- left_join(modeldata,
                            curclusters,
                            by="placeid")
