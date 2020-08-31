@@ -128,12 +128,12 @@ geneticimplement<- function(
     #                          covariatenames=envnames,
     #                         individualspergeneration=individpergeneration,
     #                         adjacency=adjacency)
-    modelsdf1 <- addgenerationf(models=modelsdf1,
-                                modeldata=mal,
-                                covariatenames=envnames,
-                                individualspergeneration=individpergeneration,
-                                adjacency=adjacency,
-                                numofcovnts = numofcovnts)
+    modelsdf1 <- addgeneration(models=modelsdf1,
+                               modeldata=mal,
+                               covariatenames=envnames,
+                               individualspergeneration=individpergeneration,
+                               adjacency=adjacency,
+                               numofcovnts = numofcovnts)
 
     if (generation == generations ) {
 
