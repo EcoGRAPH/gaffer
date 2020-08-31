@@ -10,11 +10,13 @@ geneticimplement <- function(individpergeneration = NULL,
 
   # retain only those shapes that appear in the model data
   adjacency <- adjacency[adjacency$placeid %in% unique(modeldata$placeid),]
+  # retain a list of placeids for later
+  placeids <- adjacency$placeid
+  # calculate an actual adjacency list
   adjacency <- nb2listw(poly2nb(adjacency,
                                 queen=TRUE,
-                                row.names=adjacency$NewPCODE),
+                                row.names=adjacency$placeid),
                         style="B")
-
 
   # set up the first generation of models
   modelsdf <- data.frame(generation=1,
@@ -54,7 +56,8 @@ geneticimplement <- function(individpergeneration = NULL,
   # evaluate the first generation
   modelsdf$modelmeasure <- evaluategeneration(models=modelsdf,
                                               modeldata=mal,
-                                              adjacency=adjacency)
+                                              adjacency=adjacency,
+                                              placeids=placeids)
 
   # rank models
   modelsdf$selectionprobability <- rank(modelsdf$modelmeasure, ties.method="random")
