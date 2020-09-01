@@ -45,7 +45,7 @@ addgeneration <- function(models=NULL,
 
         # delete one of the seeds
         whichtodelete <- sample(x=1:length(splitseeds), size=1)
-        splitseeds[c(1+2*(whichtodelete-1), 2*whichtodelete)] <- NULL
+        splitseeds <- splitseeds[-c(1+2*(whichtodelete-1), 2*whichtodelete)]
 
         # assign this new code
         newclusterseed <- paste(splitseeds, collapse=",")
