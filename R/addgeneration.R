@@ -94,7 +94,7 @@ addgeneration <- function(models=NULL,
 
       # figure out which variable we're adding
       whichtoadd <- covariatenames[!(covariatenames %in% curcovars)]
-      whichtoadd <- whichtoadd[sample(1:length(whichtoadd, size=1))]
+      whichtoadd <- whichtoadd[sample(1:length(whichtoadd), size=1)]
       curcovars <- c(curcovars, whichtoadd)
 
       # assign these new covariates
