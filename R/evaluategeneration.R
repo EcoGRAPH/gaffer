@@ -46,16 +46,16 @@ evaluategeneration <- function(models=NULL,
                             "mat, by=lagmat, bs='tp')",
                             sep="",
                             collapse="+")
-      modelformula <- as.formula(paste(baseformula, covarformula, sep="+"))
+      modelformula <- paste(baseformula, covarformula, sep="+")
 
     } else {
 
-      modelformula <- as.formula(baseformula)
+      modelformula <- baseformula
 
     }
 
     # create the formulas
-    fallbackformula <- as.formula(basefallback)
+    fallbackformula <- basefallback
 
     # fill in the missing placeids with NAs
     curclusters <- left_join(data.frame(placeid=placeids),
