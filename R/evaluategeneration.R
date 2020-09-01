@@ -62,7 +62,7 @@ evaluategeneration <- function(models=NULL,
                              curclusters,
                              by="placeid")
 
-    save(modelformula, file="modelformula.rdata")
+    # save(modelformula, file="modelformula.rdata")
 
     # save(adjacency, file="adjacency.rdata")
     # save(curclusters, file="curclusters.rdata")
@@ -92,9 +92,13 @@ evaluategeneration <- function(models=NULL,
       myAICs <- extractAIC.batch_bam(models=modelfit)
       models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (log(nrow(modeldata)) - 2)*sum(myAICs[,1])
 
+      #save(modelfit, file="modelfit.rdata")
+
       # try cleaning up
       rm(modelfit)
       rm(curclusters)
+      rm(modelformula)
+      rm(fallbackformula)
       modeldata$cluster <- NULL
       gc()
 
