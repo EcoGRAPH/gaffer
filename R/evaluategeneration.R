@@ -36,7 +36,7 @@ evaluategeneration <- function(models=NULL,
     curclusters$cluster <- factor(curclusters$cluster)
 
     # get the covariates
-    curcovars <- unlist(strsplit(x=models$covars,
+    curcovars <- unlist(strsplit(x=models$covars[curmodelnum],
                                  split=",",
                                  fixed=TRUE))
     if (curcovars != "none") {
@@ -61,6 +61,8 @@ evaluategeneration <- function(models=NULL,
     curclusters <- left_join(data.frame(placeid=placeids),
                              curclusters,
                              by="placeid")
+
+    save(modelformula, file="modelformula.rdata")
 
     # save(adjacency, file="adjacency.rdata")
     # save(curclusters, file="curclusters.rdata")
