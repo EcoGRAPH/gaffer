@@ -81,7 +81,7 @@ addgeneration <- function(models=NULL,
 
       # figure out which variable we're deleting
       whichtodelete <- sample(1:length(curcovars), size=1)
-      curcovars[whichtodelete] <- NULL
+      curcovars <- curcovars[-c(whichtodelete)]
 
       # assign this new code
       newcovars <- paste(curcovars, collapse=",")

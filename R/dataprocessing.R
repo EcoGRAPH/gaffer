@@ -1,6 +1,6 @@
-dataprocessing <- function(laglen   = NULL,
+dataprocessing <- function(laglen = NULL,
                            modeldata = NULL,
-                           env = NULL ){
+                           env = NULL){
 
   datalagger <- expand.grid(placeid=unique(modeldata$placeid),
                             date=unique(modeldata$date),
@@ -37,11 +37,12 @@ dataprocessing <- function(laglen   = NULL,
   }
 
   # create a lagmat for use in regressions
-  modeldata$lagmat <- matrix(rep(0:(laglen-1), nrow(modeldata)),
+  modeldata$lagmat <- matrix(rep(0:(laglen-1),
+                                 nrow(modeldata)),
                              nrow(modeldata),
                              laglen,
                              byrow=TRUE)
 
-  return (list(modeldata,env))
+  return(list(modeldata,env))
 
 }

@@ -85,4 +85,6 @@ geneticimplement <- function(individpergeneration = NULL,
 
   }
 
+  return(modelsdf)
+
 }

@@ -72,26 +72,25 @@ env$date <- as.Date(paste(env$year,
 env <- env[!is.na(env$placeid),]
 env <- env[!is.na(env$date),]
 
+# only select those which are going to be used
+env <- env[env$placeid %in% mal$placeid,]
+
 # data lagging process
-tempdf <- gaffer::dataprocessing(laglen   = 181,
+tempdf <- gaffer::dataprocessing(laglen = 181,
                                  modeldata = mal,
                                  env = env)
 mal <- as.data.frame(tempdf[1])
 env <- as.data.frame(tempdf[2])
 rm(tempdf)
 
-head(mal)
-names(mal)
-
 # decide which variable we're modeling
 mal$objective <- mal$robustified1
 
 # call the genetic algorithm
-geneticimplement(
-  individpergeneration = 10,
-  initialclusters      = 5,
-  initialcovars        = 2,
-  generations          = 2,
-  modeldata = mal,
-  envdata = env,
-  shapefile = shp)
+modelsdf <- geneticimplement(individpergeneration = 10,
+                             initialclusters      = 5,
+                             initialcovars        = 2,
+                             generations          = 2,
+                             modeldata = mal,
+                             envdata = env,
+                             shapefile = shp)
