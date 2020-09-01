@@ -112,10 +112,10 @@ addgeneration <- function(models=NULL,
                                  to=length(splitseeds),
                                  by=2)]
     clusterids <- gaffer::forciblyrevalue(as.numeric(clusterids))
-    clusterids[seq(from=2,
+    splitseeds[seq(from=2,
                    to=length(splitseeds),
                    by=2)] <- as.character(clusterids)
-    newgen$clusterseeds[i] <- paste(clusterids,
+    newgen$clusterseeds[i] <- paste(splitseeds,
                                     collapse=",")
 
   }
