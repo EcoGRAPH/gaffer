@@ -39,14 +39,22 @@ evaluategeneration <- function(models=NULL,
     curcovars <- unlist(strsplit(x=models$covars,
                                  split=",",
                                  fixed=TRUE))
-    covarformula <- paste("s(",
-                          curcovars,
-                          "mat, by=lagmat, bs='tp')",
-                          sep="",
-                          collapse="+")
+    if (curcovars != "none") {
+
+      covarformula <- paste("s(",
+                            curcovars,
+                            "mat, by=lagmat, bs='tp')",
+                            sep="",
+                            collapse="+")
+      modelformula <- as.formula(paste(baseformula, covarformula, sep="+"))
+
+    } else {
+
+      modelformula <- as.formula(baseformula)
+
+    }
 
     # create the formulas
-    modelformula <- as.formula(paste(baseformula, covarformula, sep="+"))
     fallbackformula <- as.formula(basefallback)
 
     # fill in the missing placeids with NAs
