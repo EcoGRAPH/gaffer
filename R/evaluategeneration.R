@@ -29,7 +29,7 @@ evaluategeneration <- function(models=NULL,
                               cluster=rep(0 , length(curclusterseeds)/2))
     for (i in 1:(length(curclusterseeds)/2)) {
 
-      curclusters$placeid[i] <- curclusterseeds[1+2*(i-1)]
+      curclusters$placeid[i] <- curclusterseeds[2*i-1]
       curclusters$cluster[i] <- as.numeric(curclusterseeds[2*i])
 
     }
@@ -61,6 +61,9 @@ evaluategeneration <- function(models=NULL,
     curclusters <- left_join(data.frame(placeid=placeids),
                              curclusters,
                              by="placeid")
+
+    save(adjacency, file="adjacency.rdata")
+    save(curclusters, file="curclusters.rdata")
 
     # then propagate
     curclusters$cluster <- fillbynearest(adjacency=adjacency,

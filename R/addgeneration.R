@@ -64,7 +64,7 @@ addgeneration <- function(models=NULL,
     if (newgen$mutation[i] == "addnode") {
 
       # pick a new placeid that is not already present in our string
-      whichadding <- placeids[!(placeids %in% splitseeds)]
+      whichadding <- placeids[which(!(placeids %in% splitseeds))]
       whichadding <- whichadding[sample(x=1:length(whichadding), size=1)]
 
       # add this to the list
@@ -163,6 +163,7 @@ addgeneration <- function(models=NULL,
   # make sure we're only retaining one
   previousalpharow <- previousalpharow[1]
   newgen[nrow(newgen),] <- models[previousalpharow,]
+  newgen$mutation[nrow(newgen)] <- "alpha"
 
   # make sure we have model numbers
   newgen$modelnumber <- 1:nrow(newgen)

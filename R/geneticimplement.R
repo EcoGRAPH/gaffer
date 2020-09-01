@@ -22,7 +22,7 @@ geneticimplement <- function(individpergeneration = NULL,
   modelsdf <- data.frame(generation=1,
                          mutation="firstgen",
                          modelnumber=1:individpergeneration,
-                         modelmeasure=-Inf,
+                         modelmeasure=Inf,
                          selectionprobability=1/individpergeneration)
 
   # set up initial clusters and covariates
@@ -52,6 +52,8 @@ geneticimplement <- function(individpergeneration = NULL,
   modelsdf$modelmeasure <- Inf
   modelsdf$selectionprobability <- 1
   modelsdf$generation <- 1
+
+  write.csv(modelsdf, ".\\outputs\\generation_1.csv")
 
   # evaluate the first generation
   modelsdf$modelmeasure <- evaluategeneration(models=modelsdf,
