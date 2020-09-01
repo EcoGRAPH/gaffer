@@ -53,8 +53,6 @@ geneticimplement <- function(individpergeneration = NULL,
   modelsdf$selectionprobability <- 1
   modelsdf$generation <- 1
 
-  write.csv(modelsdf, ".\\outputs\\generation_1.csv")
-
   # evaluate the first generation
   modelsdf$modelmeasure <- evaluategeneration(models=modelsdf,
                                               modeldata=mal,
@@ -65,6 +63,9 @@ geneticimplement <- function(individpergeneration = NULL,
   modelsdf$selectionprobability <- rank(modelsdf$modelmeasure, ties.method="random")
   modelsdf$selectionprobability <- 1/modelsdf$selectionprobability / sum(1/modelsdf$selectionprobability, na.rm=TRUE)
   modelsdf$selectionprobability[is.na(modelsdf$selectionprobability)] <- 0
+
+  # save the first generation
+  write.csv(modelsdf, ".\\outputs\\generation_1.csv")
 
   # run the rest of the generations
   for (generation in 2:generations) {

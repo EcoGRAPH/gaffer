@@ -91,7 +91,7 @@ mal$objective <- mal$robustified1
 modelsdf <- geneticimplement(individpergeneration = 10,
                              initialclusters      = 10,
                              initialcovars        = 1,
-                             generations          = 3,
+                             generations          = 5,
                              modeldata = mal,
                              envdata = env,
                              shapefile = shp)
