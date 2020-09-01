@@ -77,14 +77,14 @@ geneticimplement <- function(individpergeneration = NULL,
                               adjacency=adjacency,
                               placeids=placeids)
 
-    if (generation == generations) {
+    #if (generation == generations) {
 
       write.csv(modelsdf,
                 paste(".\\outputs\\generation_",
                       generation, ".csv",
                       sep=""))
 
-    }
+    #}
 
   }
 
