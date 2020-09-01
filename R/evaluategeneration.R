@@ -45,6 +45,10 @@ evaluategeneration <- function(models=NULL,
                           sep="",
                           collapse="+")
 
+    # create the formulas
+    modelformula <- as.formula(paste(baseformula, covarformula, sep="+"))
+    fallbackformula <- as.formula(basefallback)
+
     # fill in the missing placeids with NAs
     curclusters <- left_join(data.frame(placeid=placeids),
                              curclusters,
@@ -57,8 +61,6 @@ evaluategeneration <- function(models=NULL,
                            curclusters,
                            by="placeid")
 
-    write.csv(modeldata, file="modeldata.csv")
-
     # make sure our factors are indeed factors
     modeldata$cluster <- factor(modeldata$cluster)
     modeldata$placeid <- factor(modeldata$placeid)
@@ -67,11 +69,11 @@ evaluategeneration <- function(models=NULL,
 
       # fit the models
       modelfit <- batch_bam(data = modeldata,
-                            bamargs = list("formula" = myformula1,
+                            bamargs = list("formula" = modelformula,
                                            "family" = gaussian(),
                                            "discrete" = TRUE,
                                            "nthread" = parallel::detectCores(logical=FALSE)-1),
-                            bamargs_fallback = list("formula" = myfallbackformula1),
+                            bamargs_fallback = list("formula" = fallbackformula),
                             over = "cluster")
       myAICs <- extractAIC.batch_bam(models=modelfit)
       models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (log(nrow(modeldata)) - 2)*sum(myAICs[,1])
