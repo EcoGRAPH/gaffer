@@ -68,11 +68,11 @@ geneticimplement <- function(individpergeneration = NULL,
   for (generation in 2:generations) {
 
     modelsdf <- addgeneration(models=modelsdf,
-                               modeldata=mal,
-                               covariatenames=envnames,
-                               individualspergeneration=individpergeneration,
-                               adjacency=adjacency,
-                               numofcovnts = numofcovnts)
+                              modeldata=mal,
+                              covariatenames=envnames,
+                              individualspergeneration=individpergeneration,
+                              adjacency=adjacency,
+                              placeids=placeids)
 
     if (generation == generations) {
 

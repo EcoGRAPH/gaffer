@@ -18,6 +18,9 @@ evaluategeneration <- function(models=NULL,
   # run batch_bam on all the models
   for (curmodelnum in 1:nrow(models)) {
 
+    # get rid of clusters from previous model, if any
+    modeldata$cluster <- NULL
+
     # get the cluster seeds
     curclusterseeds <- unlist(strsplit(x=models$clusterseeds[curmodelnum],
                                        split=",",
@@ -54,6 +57,8 @@ evaluategeneration <- function(models=NULL,
                            curclusters,
                            by="placeid")
 
+    write.csv(modeldata, file="modeldata.csv")
+
     # make sure our factors are indeed factors
     modeldata$cluster <- factor(modeldata$cluster)
     modeldata$placeid <- factor(modeldata$placeid)
@@ -68,7 +73,6 @@ evaluategeneration <- function(models=NULL,
                                            "nthread" = parallel::detectCores(logical=FALSE)-1),
                             bamargs_fallback = list("formula" = myfallbackformula1),
                             over = "cluster")
-      #print(modelfit)
       myAICs <- extractAIC.batch_bam(models=modelfit)
       models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (log(nrow(modeldata)) - 2)*sum(myAICs[,1])
 

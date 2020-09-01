@@ -3,9 +3,9 @@ addgeneration <- function(models=NULL,
                           individualspergeneration=10,
                           covariatenames=NULL,
                           adjacency=NULL,
-                          numofcovnts = NULL,
+                          placeids=NULL,
                           mutationprobabilities=c(0.60, 0.30, 0.05, 0.05),
-                          mutationtypes=c("deletenode", "addnode", "recruit", "mutatevariables")) {
+                          mutationtypes=c("deletenode", "addnode", "dropvariable", "addvariable")) {
 
   # obtain the last generation
   lastgennum <- max(models$generation, na.rm=TRUE)
@@ -24,22 +24,32 @@ addgeneration <- function(models=NULL,
                             prob=mutationprobabilities)
   newgen$mutation <- mutationtypes[newgen$mutation]
 
-  covts <- paste0("cov",seq(1:numofcovnts))
-
-
   # for each new child, mutate as chosen above
   for (i in 1:(nrow(newgen)-1)) {
+
+    # figure out what the current model includes
+    curcovars <- unlist(strsplit(x=newgen$covars[i],
+                                 split=",",
+                                 fixed=TRUE))
+
+    curclusterseeds <- newgen$clusterseeds[i]
+    splitseeds <- unlist(strsplit(x=curclusterseeds,
+                         split=",",
+                         fixed=TRUE))
+    maxgroup <- length(splitseeds)/2
 
     # if this is a merge, then pick two groups to merge
     if (newgen$mutation[i] == "deletenode") {
 
-      maxgroup <- max(newgen$clustermat[i,], na.rm=TRUE)
       if (maxgroup >= 3) {
 
-        whichnonNA <- which(!is.na(newgen$clustermat[i,]))
-        whichtodelete <- whichnonNA[sample(x=1:length(whichnonNA),
-                                           size=1)]
-        newgen$clustermat[i, whichtodelete] <- NA
+        # delete one of the seeds
+        whichtodelete <- sample(x=1:splitseeds, size=1)
+        splitseeds[c(1+2*(whichtodelete-1), 2*whichtodelete)] <- NULL
+
+        # assign this new code
+        newclusterseed <- paste(splitseeds, collapse=",")
+        newgen$clusterseeds[i] <- newclusterseed
 
       } else {
 
@@ -53,38 +63,60 @@ addgeneration <- function(models=NULL,
     # if this is a split, then pick one group to split
     if (newgen$mutation[i] == "addnode") {
 
-      maxgroup <- max(newgen$clustermat[i,], na.rm=TRUE)
-      whichNA <- which(is.na(newgen$clustermat[i,]))
-      whichtoadd <- whichNA[sample(x=1:length(whichNA), size=1)]
-      newgen$clustermat[i, whichtoadd] <- (maxgroup+1)
+      # pick a new placeid that is not already present in our string
+      whichadding <- placeids[!(placeids %in% splitseeds)]
+      whichadding <- whichadding[sample(x=1:length(whichadding), size=1)]
+
+      # add this to the list
+      splitseeds <- c(splitseeds, whichadding, maxgroup+1)
+
+      # assign this new code
+      newclusterseed <- paste(splitseeds, collapse=",")
+      newgen$clusterseeds[i] <- newclusterseed
 
     }
 
-    # if this is a recruitment, then pick one group to spawn
-    if (newgen$mutation[i] == "recruit") {
+    # if we're deleting a variable
+    if (newgen$mutation[i] == "dropvariable") {
 
-      whichNA <- which(is.na(newgen$clustermat[i,]))
-      whichnotNA <- which(!is.na(newgen$clustermat[i,]))
-      whichtoadd <- whichNA[sample(x=1:length(whichNA), size=1)]
-      whichbeingadded <- whichnotNA[sample(x=1:length(whichnotNA), size=1)]
+      # figure out which variable we're deleting
+      whichtodelete <- sample(1:length(curcovars), size=1)
+      curcovars[whichtodelete] <- NULL
 
-      newgen$clustermat[i, whichtoadd] <- newgen$clustermat[i, whichbeingadded]
-
-    }
-
-    # if we're mutating variables
-    if (newgen$mutation[i] == "mutatevariables") {
-
-      # resample the covariates
-      for (j in covts){
-        z = newgen[,j]
-        z[i] <- sample(x=covariatenames, size=1)
-      }
+      # assign this new code
+      newcovars <- paste(curcovars, collapse=",")
+      newgen$covars[i] <- newcovars
 
     }
 
-    # put back in order, make sure we're not missing anything
-    newgen$clustermat[i,] <- gaffer::forciblyrevalue(newgen$clustermat[i,])
+    # if we're adding a variable
+    if (newgen$mutation[i] == "addvariable") {
+
+      # figure out which variable we're adding
+      whichtoadd <- covariatenames[!(covariatenames %in% curcovars)]
+      whichtoadd <- whichtoadd[sample(1:length(whichtoadd, size=1))]
+      curcovars <- c(curcovars, whichtoadd)
+
+      # assign these new covariates
+      newcovars <- paste(curcovars, collapse=",")
+      newgen$covars[i] <- newcovars
+
+    }
+
+    # break apart once again to make sure the seeds are 1:n
+    splitseeds <- unlist(strsplit(x=newgen$clusterseeds[i],
+                                  split=",",
+                                  fixed=TRUE))
+    # get the cluster ids
+    clusterids <- splitseeds[seq(from=2,
+                                 to=length(splitseeds),
+                                 by=2)]
+    clusterids <- gaffer::forciblyrevalue(as.numeric(clusterids))
+    clusterids[seq(from=2,
+                   to=length(splitseeds),
+                   by=2)] <- as.character(clusterids)
+    newgen$clusterseeds[i] <- paste(clusterids,
+                                    collapse=",")
 
   }
 
