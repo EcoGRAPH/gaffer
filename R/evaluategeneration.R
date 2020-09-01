@@ -62,8 +62,9 @@ evaluategeneration <- function(models=NULL,
                              curclusters,
                              by="placeid")
 
-    save(adjacency, file="adjacency.rdata")
-    save(curclusters, file="curclusters.rdata")
+    # save(adjacency, file="adjacency.rdata")
+    # save(curclusters, file="curclusters.rdata")
+    # save(models, file="models.rdata")
 
     # then propagate
     curclusters$cluster <- fillbynearest(adjacency=adjacency,

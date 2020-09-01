@@ -34,7 +34,7 @@ geneticimplement <- function(individpergeneration = NULL,
   modelsdf$covars       <- ""
   for (i in 1:nrow(modelsdf)) {
 
-    modelsdf$clusterseeds[i] <- paste(sample(modeldata$placeid,
+    modelsdf$clusterseeds[i] <- paste(sample(unique(modeldata$placeid),
                                              size=initialclusters,
                                              replace=FALSE),
                                       1:initialclusters,

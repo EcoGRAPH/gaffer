@@ -12,13 +12,13 @@ addgeneration <- function(models=NULL,
   lastgen <- models[models$generation == lastgennum,]
 
   # choose parents from the previous generation according to selectionprobability
-  newgen <- lastgen[sample(x=nrow(lastgen),
+  newgen <- lastgen[sample(x=1:nrow(lastgen),
                            size=individualspergeneration,
                            replace=TRUE,
                            prob=lastgen$selectionprobability),]
 
   # for each new child, select a possible mutation
-  newgen$mutation <- sample(x=length(mutationprobabilities),
+  newgen$mutation <- sample(x=1:length(mutationprobabilities),
                             size=nrow(newgen),
                             replace=TRUE,
                             prob=mutationprobabilities)
