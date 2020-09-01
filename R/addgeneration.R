@@ -80,12 +80,29 @@ addgeneration <- function(models=NULL,
     if (newgen$mutation[i] == "dropvariable") {
 
       # figure out which variable we're deleting
-      whichtodelete <- sample(1:length(curcovars), size=1)
-      curcovars <- curcovars[-c(whichtodelete)]
 
-      # assign this new code
-      newcovars <- paste(curcovars, collapse=",")
-      newgen$covars[i] <- newcovars
+      if (curcovars != "none") {
+
+        whichtodelete <- sample(1:length(curcovars), size=1)
+        curcovars <- curcovars[-c(whichtodelete)]
+
+        if (length(curcovars) > 0) {
+
+          # assign this new code
+          newcovars <- paste(curcovars, collapse=",")
+          newgen$covars[i] <- newcovars
+
+        } else {
+
+          newgen$covars[i] <- "none"
+
+        }
+
+      } else {
+
+        newgen$covars[i] <- "none"
+
+      }
 
     }
 
@@ -94,12 +111,21 @@ addgeneration <- function(models=NULL,
 
       # figure out which variable we're adding
       whichtoadd <- covariatenames[!(covariatenames %in% curcovars)]
-      whichtoadd <- whichtoadd[sample(1:length(whichtoadd), size=1)]
-      curcovars <- c(curcovars, whichtoadd)
 
-      # assign these new covariates
-      newcovars <- paste(curcovars, collapse=",")
-      newgen$covars[i] <- newcovars
+      if (length(whichtoadd) > 0) {
+
+        whichtoadd <- whichtoadd[sample(1:length(whichtoadd), size=1)]
+        curcovars <- c(curcovars, whichtoadd)
+
+        # assign these new covariates
+        newcovars <- paste(curcovars, collapse=",")
+        newgen$covars[i] <- newcovars
+
+      } else {
+
+        newgen$covars[i] <- curcovars
+
+      }
 
     }
 
