@@ -46,27 +46,21 @@ evaluategeneration <- function(models=NULL,
                             "mat, by=lagmat, bs='tp')",
                             sep="",
                             collapse="+")
-      modelformula <- paste(baseformula, covarformula, sep="+")
+      modelformula <- as.formula(paste(baseformula, covarformula, sep="+"))
 
     } else {
 
-      modelformula <- baseformula
+      modelformula <- as.formula(baseformula)
 
     }
 
     # create the formulas
-    fallbackformula <- basefallback
+    fallbackformula <- as.formula(basefallback)
 
     # fill in the missing placeids with NAs
     curclusters <- left_join(data.frame(placeid=placeids),
                              curclusters,
                              by="placeid")
-
-    # save(modelformula, file="modelformula.rdata")
-
-    # save(adjacency, file="adjacency.rdata")
-    # save(curclusters, file="curclusters.rdata")
-    # save(models, file="models.rdata")
 
     # then propagate
     curclusters$cluster <- fillbynearest(adjacency=adjacency,
@@ -90,7 +84,9 @@ evaluategeneration <- function(models=NULL,
                             bamargs_fallback = list("formula" = fallbackformula),
                             over = "cluster")
       myAICs <- extractAIC.batch_bam(models=modelfit)
-      models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (log(nrow(modeldata)) - 2)*sum(myAICs[,1])
+      #models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (log(nrow(modeldata)) - 2)*sum(myAICs[,1])
+
+      models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
 
       #save(modelfit, file="modelfit.rdata")
 

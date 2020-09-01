@@ -4,7 +4,7 @@ addgeneration <- function(models=NULL,
                           covariatenames=NULL,
                           adjacency=NULL,
                           placeids=NULL,
-                          mutationprobabilities=c(0.25, 0.25, 0.25, 0.25),
+                          mutationprobabilities=c(0.40, 0.40, 0.10, 0.10),
                           mutationtypes=c("deletenode", "addnode", "dropvariable", "addvariable")) {
 
   # obtain the last generation
