@@ -115,7 +115,16 @@ addgeneration <- function(models=NULL,
       if (length(whichtoadd) > 0) {
 
         whichtoadd <- whichtoadd[sample(1:length(whichtoadd), size=1)]
-        curcovars <- c(curcovars, whichtoadd)
+
+        if (curcovars != "none") {
+
+          curcovars <- c(curcovars, whichtoadd)
+
+        } else {
+
+          curcovars <- whichtoadd
+
+        }
 
         # assign these new covariates
         newcovars <- paste(curcovars, collapse=",")
