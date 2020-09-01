@@ -4,7 +4,7 @@ addgeneration <- function(models=NULL,
                           covariatenames=NULL,
                           adjacency=NULL,
                           placeids=NULL,
-                          mutationprobabilities=c(0.60, 0.30, 0.05, 0.05),
+                          mutationprobabilities=c(0.25, 0.25, 0.25, 0.25),
                           mutationtypes=c("deletenode", "addnode", "dropvariable", "addvariable")) {
 
   # obtain the last generation
@@ -111,7 +111,10 @@ addgeneration <- function(models=NULL,
     clusterids <- splitseeds[seq(from=2,
                                  to=length(splitseeds),
                                  by=2)]
+    # revalue
     clusterids <- gaffer::forciblyrevalue(as.numeric(clusterids))
+
+    # reassign
     splitseeds[seq(from=2,
                    to=length(splitseeds),
                    by=2)] <- as.character(clusterids)

@@ -74,20 +74,21 @@ env <- env[!is.na(env$date),]
 
 # data lagging process
 tempdf <- gaffer::dataprocessing(laglen   = 181,
-                               dlagdeg  = 8,
-                               nprincomps = 5,
-                               modeldata = mal,
-                               env = env)
+                                 modeldata = mal,
+                                 env = env)
 mal <- as.data.frame(tempdf[1])
 env <- as.data.frame(tempdf[2])
 rm(tempdf)
+
+head(mal)
+names(mal)
 
 # decide which variable we're modeling
 mal$objective <- mal$robustified1
 
 # call the genetic algorithm
 geneticimplement(
-  individpergeneration = 5,
+  individpergeneration = 10,
   initialclusters      = 5,
   initialcovars        = 2,
   generations          = 2,

@@ -41,7 +41,7 @@ evaluategeneration <- function(models=NULL,
                                  fixed=TRUE))
     covarformula <- paste("s(",
                           curcovars,
-                          ", by=lagmat, bs='tp')",
+                          "mat, by=lagmat, bs='tp')",
                           sep="",
                           collapse="+")
 

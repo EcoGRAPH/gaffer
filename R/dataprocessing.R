@@ -1,6 +1,4 @@
 dataprocessing <- function(laglen   = NULL,
-                           dlagdeg  = NULL,
-                           nprincomps =NULL,
                            modeldata = NULL,
                            env = NULL ){
 
@@ -15,7 +13,6 @@ dataprocessing <- function(laglen   = NULL,
 
   envnames <- colnames(env)
   envnames <- envnames[!(envnames %in% c("placeid", "date", "year", "doy"))]
-  datalagger
 
   for (curenv in envnames) {
 
@@ -34,15 +31,16 @@ dataprocessing <- function(laglen   = NULL,
                                                    fixed=TRUE)])
     colnames(modeldata)[length(colnames(modeldata))] <- paste(curenv, "mat", sep="")
 
-    # replace with summaries
-    modeldata[,paste(curenv, "mat", sep="")] <- modeldata[,paste(curenv, "mat", sep="")] %*%
-      as.matrix(bs(0:(laglen-1), intercept=TRUE))
-
     # and get rid of the lagged data columns
     modeldata[,grep(x=colnames(modeldata), pattern=paste(curenv, "_", sep=""), fixed=TRUE)] <- NULL
 
   }
 
+  # create a lagmat for use in regressions
+  modeldata$lagmat <- matrix(rep(0:(laglen-1), nrow(modeldata)),
+                             nrow(modeldata),
+                             laglen,
+                             byrow=TRUE)
 
   return (list(modeldata,env))
 

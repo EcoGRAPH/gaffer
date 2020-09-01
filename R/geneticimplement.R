@@ -76,8 +76,8 @@ geneticimplement <- function(individpergeneration = NULL,
 
     if (generation == generations) {
 
-      write.csv(modelsdf %>% dplyr::select(!starts_with("clustermat", ignore.case = TRUE)),
-                paste("generation_",
+      write.csv(modelsdf,
+                paste(".\\outputs\\generation_",
                       generation, ".csv",
                       sep=""))
 
