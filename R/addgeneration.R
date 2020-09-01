@@ -44,7 +44,7 @@ addgeneration <- function(models=NULL,
       if (maxgroup >= 3) {
 
         # delete one of the seeds
-        whichtodelete <- sample(x=1:splitseeds, size=1)
+        whichtodelete <- sample(x=1:length(splitseeds), size=1)
         splitseeds[c(1+2*(whichtodelete-1), 2*whichtodelete)] <- NULL
 
         # assign this new code
@@ -133,7 +133,7 @@ addgeneration <- function(models=NULL,
   newgen$modelmeasure <- evaluategeneration(models=newgen,
                                             modeldata=mal,
                                             adjacency=adjacency,
-                                            numofcovnts = numofcovnts)
+                                            placeids=placeids)
   # rank models
   newgen$selectionprobability <- rank(newgen$modelmeasure, ties.method="random")
   newgen$selectionprobability <- 1/newgen$selectionprobability / sum(1/newgen$selectionprobability, na.rm=TRUE)

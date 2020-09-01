@@ -90,7 +90,7 @@ geneticimplement(
   individpergeneration = 5,
   initialclusters      = 5,
   initialcovars        = 2,
-  generations          = 5,
+  generations          = 2,
   modeldata = mal,
   envdata = env,
   shapefile = shp)
