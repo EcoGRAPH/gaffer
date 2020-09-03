@@ -7,6 +7,9 @@ addgeneration <- function(models=NULL,
                           mutationprobabilities=c(0.40, 0.40, 0.10, 0.10),
                           mutationtypes=c("deletenode", "addnode", "dropvariable", "addvariable")) {
 
+  # make absolutely sure all this is random
+  set.seed(Sys.time())
+
   # obtain the last generation
   lastgennum <- max(models$generation, na.rm=TRUE)
   lastgen <- models[models$generation == lastgennum,]
