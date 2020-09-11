@@ -67,6 +67,11 @@ geneticimplement <- function(individpergeneration = NULL,
   # save the first generation
   write.csv(modelsdf, ".\\outputs\\generation_1.csv")
 
+  gens <- c()
+  measure <- c()
+
+  count = 0
+
   # run the rest of the generations
   for (generation in 2:generations) {
 
@@ -86,6 +91,27 @@ geneticimplement <- function(individpergeneration = NULL,
 
     #}
 
+
+      gens <- c(gens, generation)
+      measure <- c(measure,min(modelsdf$modelmeasure))
+
+
+  }
+
+  for (i in 1:length(gens)){
+
+    count = count + 1
+    if (count == 10){
+
+      plot(head(gens,10),head(measure,10),type="l", main="generations vs measure",xlab = "Generations",
+           ylab="Model min measure")
+     # print(gens[1:2])
+     # print(measure[1:2])
+      gens <- gens[-seq(1:10)]
+      measure <- measure[-seq(1:10)]
+
+      count = 0
+    }
   }
 
   return(modelsdf)
