@@ -89,7 +89,7 @@ mal$objective <- mal$robustified1
 
 gendf <- read.csv('generation_3.CSV')
 # call the genetic algorithm
-modelsdf <- geneticimplement1(individpergeneration = 30,
+modelsdf <- geneticimplement(individpergeneration = 30,
                              initialclusters      = 5,
                              initialcovars        = 1,
                              generations          = 20,
