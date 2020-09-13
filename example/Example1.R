@@ -87,11 +87,14 @@ rm(tempdf)
 # decide which variable we're modeling
 mal$objective <- mal$robustified1
 
+gendf <- read.csv('generation_3.CSV')
 # call the genetic algorithm
-modelsdf <- geneticimplement(individpergeneration = 30,
+modelsdf <- geneticimplement1(individpergeneration = 30,
                              initialclusters      = 5,
                              initialcovars        = 1,
-                             generations          = 200,
+                             generations          = 20,
                              modeldata = mal,
                              envdata = env,
-                             shapefile = shp)
+                             shapefile = shp,
+                             option = 'yes',
+                             Genmodelsdf = gendf)
