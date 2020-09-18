@@ -88,13 +88,14 @@ rm(tempdf)
 mal$objective <- mal$robustified1
 
 # call the genetic algorithm
-modelsdf <- geneticimplement(individpergeneration = 30,
+modelsdf <- geneticimplement(individpergeneration = 3,
                              initialclusters      = 5,
                              initialcovars        = 1,
-                             generations          = 200,
+                             generations          = 10,
                              modeldata = mal,
                              envdata = env,
-                             shapefile = shp)
+                             shapefile = shp,
+                             slice = 2)
 
 # reconstruct the best model
 mybest <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]

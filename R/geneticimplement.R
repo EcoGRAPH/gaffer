@@ -4,7 +4,8 @@ geneticimplement <- function(individpergeneration = NULL,
                              generations          = NULL,
                              modeldata            = NULL,
                              envdata              = NULL,
-                             shapefile            = NULL) {
+                             shapefile            = NULL,
+                             slice                = 1) {
 
   adjacency <- shapefile
 
@@ -65,7 +66,7 @@ geneticimplement <- function(individpergeneration = NULL,
   modelsdf$selectionprobability[is.na(modelsdf$selectionprobability)] <- 0
 
   # save the first generation
-  write.csv(modelsdf, ".\\outputs\\generation_1.csv")
+  write.csv(modelsdf, ".\\csv outputs\\generation_1.csv")
 
   # run the rest of the generations
   for (generation in 2:generations) {
@@ -77,14 +78,22 @@ geneticimplement <- function(individpergeneration = NULL,
                               adjacency=adjacency,
                               placeids=placeids)
 
-    #if (generation == generations) {
+    if (generation %% slice == 0) {
 
       write.csv(modelsdf,
-                paste(".\\outputs\\generation_",
+                paste(".\\csv outputs\\generation_",
                       generation, ".csv",
                       sep=""))
 
-    #}
+      thisplot <- ggplot(modelsdf) + geom_point(aes(x=generation,
+                                                    y=rank(modelmeasure)))
+      ggsave(plot=thisplot,
+             filename=paste(".\\png outputs\\generation_",
+                            generation, ".png",
+                            sep=""))
+
+
+    }
 
   }
 
