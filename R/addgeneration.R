@@ -5,7 +5,8 @@ addgeneration <- function(models=NULL,
                           adjacency=NULL,
                           placeids=NULL,
                           mutationprobabilities=c(0.40, 0.40, 0.10, 0.10),
-                          mutationtypes=c("deletenode", "addnode", "dropvariable", "addvariable")) {
+                          mutationtypes=c("deletenode", "addnode", "dropvariable", "addvariable"),
+                          slice=NULL) {
 
   # make absolutely sure all this is random
   set.seed(Sys.time())
@@ -173,11 +174,25 @@ addgeneration <- function(models=NULL,
   # make sure we have model numbers
   newgen$modelnumber <- 1:nrow(newgen)
 
-  # evaluate new generation
-  newgen$modelmeasure <- evaluategeneration(models=newgen,
-                                            modeldata=mal,
-                                            adjacency=adjacency,
-                                            placeids=placeids)
+  if (is.null(slice)) {
+
+    # evaluate new generation
+    newgen$modelmeasure <- evaluategeneration(models=newgen,
+                                              modeldata=mal,
+                                              adjacency=adjacency,
+                                              placeids=placeids,
+                                              savebest=FALSE) }
+  else {
+
+    # evaluate new generation
+    newgen$modelmeasure <- evaluategeneration(models=newgen,
+                                              modeldata=mal,
+                                              adjacency=adjacency,
+                                              placeids=placeids,
+                                              savebest=((lastgennum + 1) %% slice == 0))
+
+  }
+
   # rank models
   newgen$selectionprobability <- rank(newgen$modelmeasure, ties.method="random")
   newgen$selectionprobability <- 1/newgen$selectionprobability / sum(1/newgen$selectionprobability, na.rm=TRUE)

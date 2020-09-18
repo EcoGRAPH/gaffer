@@ -1,7 +1,8 @@
 evaluategeneration <- function(models=NULL,
                                modeldata=NULL,
                                adjacency=NULL,
-                               placeids=NULL) {
+                               placeids=NULL,
+                               savebest=FALSE) {
 
   # make sure we start from scratch
   models$modelmeasure <- Inf
@@ -87,10 +88,12 @@ evaluategeneration <- function(models=NULL,
       #models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (2*log(nrow(modeldata)) - 2)*sum(myAICs[,1])
       models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
 
-      #save(modelfit, file="modelfit.rdata")
-
       # try cleaning up
-      rm(modelfit)
+      if (curmodelnum < nrow(models)) {
+
+        rm(modelfit)
+
+      }
       rm(curclusters)
       rm(modelformula)
       rm(fallbackformula)
@@ -106,6 +109,13 @@ evaluategeneration <- function(models=NULL,
       return(NULL)
 
     })
+
+  }
+
+  # save the last model
+  if (savebest) {
+
+    save(modelfit, file=".\\model outputs\\modelfit.rdata")
 
   }
 

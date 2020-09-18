@@ -91,11 +91,12 @@ mal$objective <- mal$robustified1
 modelsdf <- geneticimplement(individpergeneration = 3,
                              initialclusters      = 5,
                              initialcovars        = 1,
-                             generations          = 30,
+                             generations          = 10,
                              modeldata = mal,
                              envdata = env,
                              shapefile = shp,
                              slice = 2)
+                             #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
 
 # reconstruct the best model
 mybest <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
@@ -122,3 +123,5 @@ adjacency <- nb2listw(poly2nb(adjacency,
 shp$bestmodel <- factor(fillbynearest(adjacency=adjacency,
                                       covariate=shp$cluster))
 ggplot(shp) + geom_sf(aes(fill=bestmodel))
+
+
