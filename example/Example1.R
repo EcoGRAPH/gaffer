@@ -95,3 +95,29 @@ modelsdf <- geneticimplement(individpergeneration = 30,
                              modeldata = mal,
                              envdata = env,
                              shapefile = shp)
+
+# reconstruct the best model
+mybest <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
+curclusterseeds <- unlist(strsplit(x=mybest$clusterseeds,
+                                   split=",",
+                                   fixed=TRUE))
+curclusters <- data.frame(placeid=rep("", length(curclusterseeds)/2),
+                          cluster=rep(0 , length(curclusterseeds)/2))
+for (i in 1:(length(curclusterseeds)/2)) {
+
+  curclusters$placeid[i] <- curclusterseeds[2*i-1]
+  curclusters$cluster[i] <- as.numeric(curclusterseeds[2*i])
+
+}
+
+# put this back into a map
+shp <- left_join(shp, curclusters, by="placeid")
+adjacency <- shp[shp$placeid %in% unique(mal$placeid),]
+placeids <- adjacency$placeids
+adjacency <- nb2listw(poly2nb(adjacency,
+                              queen=TRUE,
+                              row.names=adjacency$placeid),
+                      style="B")
+shp$bestmodel <- factor(fillbynearest(adjacency=adjacency,
+                                      covariate=shp$cluster))
+ggplot(shp) + geom_sf(aes(fill=bestmodel))

@@ -30,6 +30,8 @@ addgeneration <- function(models=NULL,
   # for each new child, mutate as chosen above
   for (i in 1:(nrow(newgen)-1)) {
 
+    set.seed(Sys.time())
+
     # figure out what the current model includes
     curcovars <- unlist(strsplit(x=newgen$covars[i],
                                  split=",",

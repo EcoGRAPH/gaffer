@@ -84,8 +84,8 @@ evaluategeneration <- function(models=NULL,
                             bamargs_fallback = list("formula" = fallbackformula),
                             over = "cluster")
       myAICs <- extractAIC.batch_bam(models=modelfit)
-      models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (2*log(nrow(modeldata)) - 2)*sum(myAICs[,1])
-      #models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
+      #models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (2*log(nrow(modeldata)) - 2)*sum(myAICs[,1])
+      models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
 
       #save(modelfit, file="modelfit.rdata")
 
