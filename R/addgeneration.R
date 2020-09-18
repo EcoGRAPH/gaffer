@@ -189,7 +189,7 @@ addgeneration <- function(models=NULL,
                                               modeldata=mal,
                                               adjacency=adjacency,
                                               placeids=placeids,
-                                              savebest=((lastgennum + 1) %% slice == 0))
+                                              savebest=(lastgennum + 1) %% slice == 0)
 
   }
 
