@@ -90,7 +90,8 @@ geneticimplement <- function(individpergeneration = NULL,
                               covariatenames=envnames,
                               individualspergeneration=individpergeneration,
                               adjacency=adjacency,
-                              placeids=placeids)
+                              placeids=placeids)#,
+                              #slice=slice)
 
     if (generation %% slice == 0) {
 
