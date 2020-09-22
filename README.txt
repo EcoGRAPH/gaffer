@@ -1,6 +1,6 @@
---- GAFFER ---
+## GAFFER 
 
-The gaffer library includes a genetic algorithm meant to partition time series data into spatial clusters depending on relationships with covariates.
+### The gaffer library includes a genetic algorithm meant to partition time series data into spatial clusters depending on relationships with covariates.
 
 For example, suppose we have weekly counts of human malaria cases in a number of districts, and we suspect that malaria cases in some districts respond strongly to recent precipitation, while risk in other districts does not respond much at all to rain. We would like to put these rain-sensitive districts into one cluster and the less-sensitive districts into another.
 
