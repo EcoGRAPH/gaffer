@@ -57,13 +57,13 @@ Other possibilities\
 Continually update the .csv output files - write to them every generation or every other generation. Append to the existing files, make multiple copies. But this is very inefficient. If we implement this, probably don’t make it the default.\
 Generate a convergence graph every iteration (or every n iterations) and write to the base graphics device. Better to do this with base graphics rather than ggplot.
 
-The user can bail out of the run with Esc or Ctrl-C if they need to. It would be nice to incrementally save the output files after every iteration in case the user bails out and wants to go back and examine them more closely.\
+The user can bail out of the run with Esc or Ctrl-C if they need to. It would be nice to incrementally save the output files after every iteration in case the user bails out and wants to go back and examine them more closely.
 
 #### --- AFTER THE RUN ---
 
 *The user wants to be able to determine whether the algorithm has converged. To do that, the user will want to graph changes in the model measure (and possibly other variables) as a function of generation. The user may also want to be able to compare the spatial details of the “best” model with other competing models (top 10?).*
 
-Output tables saved as csv.\
+Output tables saved as csv.
 
 List of models per generation with\
 Seeds\
