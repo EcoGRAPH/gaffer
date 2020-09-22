@@ -57,7 +57,7 @@ Other possibilities\
 Continually update the .csv output files - write to them every generation or every other generation. Append to the existing files, make multiple copies. But this is very inefficient. If we implement this, probably don’t make it the default.\
 Generate a convergence graph every iteration (or every n iterations) and write to the base graphics device. Better to do this with base graphics rather than ggplot.
 
-The user can bail out of the run with Esc or Ctrl-C if they need to. It would be nice to incrementally save the output files after every iteration in case the user bails out and wants to go back and examine them more closely.
+*The user can bail out of the run with Esc or Ctrl-C if they need to. It would be nice to incrementally save the output files after every iteration in case the user bails out and wants to go back and examine them more closely.*
 
 #### --- AFTER THE RUN ---
 
