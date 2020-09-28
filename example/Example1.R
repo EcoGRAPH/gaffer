@@ -85,7 +85,7 @@ env <- as.data.frame(tempdf[2])
 rm(tempdf)
 
 # decide which variable we're modeling
-mal$objective <- mal$robustified1
+mal$objective <- mal$robustified2
 
 # call the genetic algorithm
 modelsdf <- geneticimplement(individpergeneration = 3,
