@@ -146,14 +146,11 @@ fallbackformula <- as.formula(basefallback)
 
 bestmal$placeid <- factor(bestmal$placeid)
 
-mycluster <- makeCluster(parallel::detectCores(logical=FALSE)-1)
-
 modelfit <- batch_bam(data = bestmal,
                       bamargs = list("formula" = bestformula,
                                      "family" = gaussian(),
-                                     #"discrete" = TRUE,
-                                     #"nthread" = parallel::detectCores(logical=FALSE)-1),
-                                     cl=mycluster),
+                                     "discrete" = TRUE,
+                                     "nthread" = parallel::detectCores(logical=FALSE)-1),
                       bamargs_fallback = list("formula" = fallbackformula),
                       over = "bestmodel")
 
@@ -171,9 +168,8 @@ bestmal$constantone <- factor(1)
 nullfit <- batch_bam(data = bestmal,
                      bamargs = list("formula" = bestformula,
                                     "family" = gaussian(),
-                                    #"discrete" = TRUE,
-                                    #"nthread" = parallel::detectCores(logical=FALSE)-1),
-                                    cl=mycluster),
+                                    "discrete" = TRUE,
+                                    "nthread" = parallel::detectCores(logical=FALSE)-1),
                      bamargs_fallback = list("formula" = fallbackformula),
                      over = "constantone")
 # nullfit <- bam(data = bestmal,
@@ -181,8 +177,6 @@ nullfit <- batch_bam(data = bestmal,
 #                family = gaussian(),
 #                discrete = TRUE,
 #                nthread = parallel::detectCores(logical=FALSE)-1)
-
-stopCluster(mycluster)
 
 bestmal$nullpreds <- clusterapply::predict.batch_bam(models=nullfit,
                                                      predictargs=NULL,
