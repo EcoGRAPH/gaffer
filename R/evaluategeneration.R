@@ -1,8 +1,7 @@
 evaluategeneration <- function(models=NULL,
                                modeldata=NULL,
                                adjacency=NULL,
-                               placeids=NULL,
-                               savebest=FALSE) {
+                               placeids=NULL) {
 
   # make sure we start from scratch
   models$modelmeasure <- Inf
@@ -112,12 +111,12 @@ evaluategeneration <- function(models=NULL,
 
   }
 
-  # save the last model
-  if (savebest) {
-
-    save(modelfit, file=".\\model outputs\\modelfit.rdata")
-
-  }
+  # # save the last model
+  # if (savebest) {
+  #
+  #   save(modelfit, file=".\\model outputs\\modelfit.rdata")
+  #
+  # }
 
   # retain smallest possible frame
   returnframe <- unlist(models$modelmeasure)

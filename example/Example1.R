@@ -91,12 +91,15 @@ mal$objective <- mal$robustified1
 modelsdf <- geneticimplement(individpergeneration = 3,
                              initialclusters      = 5,
                              initialcovars        = 1,
-                             generations          = 50,
+                             generations          = 2,
                              modeldata = mal,
                              envdata = env,
                              shapefile = shp,
                              slice = 5)#,
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
+
+# load a saved file
+modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\saved outputs\\20-09-18 - amhara pfalc anom\\generation_171.csv")
 
 # reconstruct the best model
 mybest <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
@@ -124,4 +127,97 @@ shp$bestmodel <- factor(fillbynearest(adjacency=adjacency,
                                       covariate=shp$cluster))
 ggplot(shp) + geom_sf(aes(fill=bestmodel))
 
+# evaluate this model
+bestmal <- left_join(mal, shp[c("placeid", "bestmodel")], by="placeid")
+bestvars <- mybest$covars[1]
+bestvars <- unlist(strsplit(x=bestvars,
+                             split=",",
+                             fixed=TRUE))
+baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2)"
+bestformula <- paste("s(",
+                      bestvars,
+                      "mat, by=lagmat, bs='tp')",
+                      sep="",
+                      collapse="+")
+bestformula <- as.formula(paste(baseformula, bestformula, sep="+"))
 
+basefallback <- "objective ~ s(numdate, id=1) + s(doy, bs='cc', id=2)"
+fallbackformula <- as.formula(basefallback)
+
+bestmal$placeid <- factor(bestmal$placeid)
+
+mycluster <- makeCluster(parallel::detectCores(logical=FALSE)-1)
+
+modelfit <- batch_bam(data = bestmal,
+                      bamargs = list("formula" = bestformula,
+                                     "family" = gaussian(),
+                                     #"discrete" = TRUE,
+                                     #"nthread" = parallel::detectCores(logical=FALSE)-1),
+                                     cl=mycluster),
+                      bamargs_fallback = list("formula" = fallbackformula),
+                      over = "bestmodel")
+
+bestmal$bestpreds <- clusterapply::predict.batch_bam(models=modelfit,
+                                                 predictargs=NULL,
+                                                 over="bestmodel",
+                                                 newdata=bestmal)
+ggplot(bestmal) + geom_hex(aes(x=objective, y=bestpreds)) +
+  geom_abline(slope=1, intercept=0, linetype=2, color="red") +
+  ggtitle("preds vs. obs (best model) after 200 generations")
+
+
+# calculate a null model fit
+bestmal$constantone <- factor(1)
+nullfit <- batch_bam(data = bestmal,
+                     bamargs = list("formula" = bestformula,
+                                    "family" = gaussian(),
+                                    #"discrete" = TRUE,
+                                    #"nthread" = parallel::detectCores(logical=FALSE)-1),
+                                    cl=mycluster),
+                     bamargs_fallback = list("formula" = fallbackformula),
+                     over = "constantone")
+# nullfit <- bam(data = bestmal,
+#                formula = bestformula,
+#                family = gaussian(),
+#                discrete = TRUE,
+#                nthread = parallel::detectCores(logical=FALSE)-1)
+
+stopCluster(mycluster)
+
+bestmal$nullpreds <- clusterapply::predict.batch_bam(models=nullfit,
+                                                     predictargs=NULL,
+                                                     over="constantone",
+                                                     newdata=bestmal)
+
+ggplot(bestmal) + geom_hex(aes(x=objective, y=nullpreds)) +
+  geom_abline(slope=1, intercept=0, linetype=2, color="red") +
+  ggtitle("preds vs. obs (null model) after 200 generations")
+
+cor(x=bestmal$objective,
+    y=bestmal$bestpreds,
+    use="complete.obs")
+cor(x=bestmal$objective,
+    y=bestmal$nullpreds,
+    use="complete.obs")
+
+AIC1 <- sum(extractAIC.batch_bam(modelfit)$X2)
+AIC0 <- sum(extractAIC.batch_bam(nullfit)$X2)
+
+AIC1 - AIC0
+
+# get summaries
+bestsummary <- clusterapply::summary.batch_bam(modelfit)
+nullsummary <- clusterapply::summary.batch_bam(nullfit)
+
+# get estimated scales
+bestscales <- unlist(lapply(bestsummary, "[[", "scale"))
+nullscales <- unlist(lapply(nullsummary, "[[", "scale"))
+
+bestscales
+nullscales
+
+exp(mean(log(bestscales)))
+mean(bestscales)
+
+# take a look at the summary
+modelfit[[1]]

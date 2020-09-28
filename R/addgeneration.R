@@ -180,16 +180,14 @@ addgeneration <- function(models=NULL,
     newgen$modelmeasure <- evaluategeneration(models=newgen,
                                               modeldata=mal,
                                               adjacency=adjacency,
-                                              placeids=placeids,
-                                              savebest=FALSE) }
+                                              placeids=placeids) }
   else {
 
     # evaluate new generation
     newgen$modelmeasure <- evaluategeneration(models=newgen,
                                               modeldata=mal,
                                               adjacency=adjacency,
-                                              placeids=placeids,
-                                              savebest=(lastgennum + 1) %% slice == 0)
+                                              placeids=placeids)
 
   }
 
