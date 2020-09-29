@@ -36,6 +36,7 @@ dataprocessing <- function(laglen = NULL,
 
     # anomalize
     env[,paste("anom_", curenv, sep="")] <- env[,curenv] - env$meantemp
+    env[is.na(env[,paste("anom_", curenv, sep="")]),paste("anom_", curenv, sep="")] <- 0
 
     # remove temporary variables
     env$meantemp <- NULL
