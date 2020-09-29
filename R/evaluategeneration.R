@@ -3,8 +3,6 @@ evaluategeneration <- function(models=NULL,
                                adjacency=NULL,
                                placeids=NULL) {
 
-  write.csv(models, file="models.csv")
-
   # make sure we start from scratch
   models$modelmeasure <- Inf
   models$selectionprobability <- 1
@@ -74,8 +72,6 @@ evaluategeneration <- function(models=NULL,
     # make sure our factors are indeed factors
     modeldata$cluster <- factor(modeldata$cluster)
     modeldata$placeid <- factor(modeldata$placeid)
-
-    save(modelformula, file="modelformula.rdata")
 
     tryCatch({
 

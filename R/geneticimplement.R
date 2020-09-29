@@ -58,8 +58,6 @@ geneticimplement <- function(individpergeneration = NULL,
     modelsdf$selectionprobability <- 1
     modelsdf$generation <- 1
 
-    write.csv(modelsdf, file="modelsdf.csv")
-
     # evaluate the first generation
     modelsdf$modelmeasure <- evaluategeneration(models=modelsdf,
                                                 modeldata=mal,
