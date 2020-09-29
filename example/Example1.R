@@ -76,6 +76,16 @@ env <- env[!is.na(env$date),]
 # only select those which are going to be used
 env <- env[env$placeid %in% mal$placeid,]
 
+# create a frame that contains all the necessary environmental observations, missing if necessary
+necessarydates <- expand.grid(date = unique(mal$date),
+                              lag  = 0:181)
+necessarydates$date <- necessarydates$date - necessarydates$lag
+necessarydates$lag <- NULL
+envframe <- expand.grid(placeid=unique(mal$placeid),
+                        date   =unique(necessarydates$date))
+env <- left_join(envframe, env, by=c("placeid", "date"))
+rm(necessarydates)
+
 # data lagging process
 tempdf <- gaffer::dataprocessing(laglen = 181,
                                  modeldata = mal,
@@ -161,7 +171,6 @@ bestmal$bestpreds <- clusterapply::predict.batch_bam(models=modelfit,
 ggplot(bestmal) + geom_hex(aes(x=objective, y=bestpreds)) +
   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
   ggtitle("preds vs. obs (best model) after 200 generations")
-
 
 # calculate a null model fit
 bestmal$constantone <- factor(1)

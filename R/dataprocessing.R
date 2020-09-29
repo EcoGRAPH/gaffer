@@ -2,6 +2,51 @@ dataprocessing <- function(laglen = NULL,
                            modeldata = NULL,
                            env = NULL){
 
+  # get list of environmental names
+  envnames <- colnames(env)
+  envnames <- envnames[!(envnames %in% c("placeid", "date", "year", "doy"))]
+
+  # make sure this is a factor
+  env$placeid <- factor(env$placeid)
+
+  # complete and anomalize the data
+  for (curenv in envnames) {
+
+    env$temp <- env[,curenv]
+    # thisbatch <- batch_bam(data=env,
+    #                        bamargs=list("formula"=as.formula("temp ~ s(doy, bs='cc')"),
+    #                                     "discrete"=TRUE,
+    #                                     "nthread" = parallel::detectCores(logical=FALSE)-1),
+    #                        bamargs_fallback=list("formula"=as.formula("temp ~ 1")),
+    #                        over="placeid")
+    #
+    # env$pred <- clusterapply::predict.batch_bam(models=thisbatch,
+    #                                             newdata=env,
+    #                                             over="placeid")
+
+    tempdf <- dplyr::summarise(group_by(env,
+                                        placeid,
+                                        doy),
+                               meantemp = mean(temp, na.rm=TRUE))
+    env <- left_join(env, tempdf, by=c("placeid", "doy"))
+    rm(tempdf)
+
+    # replace missing
+    env[is.na(env$temp),curenv] <- env$meantemp[is.na(env$temp)]
+
+    # anomalize
+    env[,paste("anom_", curenv, sep="")] <- env[,curenv] - env$meantemp
+
+    # remove temporary variables
+    env$meantemp <- NULL
+    env$temp     <- NULL
+
+  }
+
+  # get list of environmental names again, now with anoms
+  envnames <- colnames(env)
+  envnames <- envnames[!(envnames %in% c("placeid", "date", "year", "doy"))]
+
   datalagger <- expand.grid(placeid=unique(modeldata$placeid),
                             date=unique(modeldata$date),
                             lag=seq(from=0, to=laglen-1, by=1))
@@ -10,9 +55,6 @@ dataprocessing <- function(laglen = NULL,
   datalagger <- left_join(datalagger, env,
                           by=c("placeid"="placeid",
                                "laggeddate"="date"))
-
-  envnames <- colnames(env)
-  envnames <- envnames[!(envnames %in% c("placeid", "date", "year", "doy"))]
 
   for (curenv in envnames) {
 
