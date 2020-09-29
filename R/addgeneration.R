@@ -4,8 +4,8 @@ addgeneration <- function(models=NULL,
                           covariatenames=NULL,
                           adjacency=NULL,
                           placeids=NULL,
-                          mutationprobabilities=c(0.40, 0.40, 0.10, 0.10),
-                          mutationtypes=c("deletenode", "addnode", "dropvariable", "addvariable"),
+                          mutationprobabilities=c(0.35, 0.35, 0.10, 0.10, 0.10),
+                          mutationtypes=c("deletenode", "addnode", "dropvariable", "addvariable", "cyclicals"),
                           slice=NULL) {
 
   # make absolutely sure all this is random
@@ -141,6 +141,13 @@ addgeneration <- function(models=NULL,
         newgen$covars[i] <- curcovars
 
       }
+
+    }
+
+    # if we're adding a variable
+    if (newgen$mutation[i] == "cyclicals") {
+
+      newgen$cyclicals[i] <- sample(1:3, size=1)
 
     }
 

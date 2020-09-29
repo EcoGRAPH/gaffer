@@ -94,9 +94,6 @@ mal <- as.data.frame(tempdf[1])
 env <- as.data.frame(tempdf[2])
 rm(tempdf)
 
-colnames(env)
-colnames(mal)
-
 # decide which variable we're modeling
 mal$objective <- mal$robustified2
 

@@ -51,6 +51,8 @@ geneticimplement <- function(individpergeneration = NULL,
                                          replace=FALSE),
                                   collapse=",")
 
+      modelsdf$cyclicals[i] <- sample(1:3, size=1)
+
     }
 
     # set up initial model measures

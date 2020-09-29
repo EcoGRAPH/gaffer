@@ -12,11 +12,26 @@ evaluategeneration <- function(models=NULL,
   modeldata$doy     <- as.numeric(format(modeldata$date, "%j"))
 
   # create the basic formula
-  baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2)"
   basefallback <- "objective ~ s(numdate, id=1) + s(doy, bs='cc', id=2)"
 
   # run batch_bam on all the models
   for (curmodelnum in 1:nrow(models)) {
+
+    if (models$cyclicals[curmodelnum] == 1) {
+
+      baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1)"
+
+    }
+    if (models$cyclicals[curmodelnum] == 2) {
+
+      baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2)"
+
+    }
+    if (models$cyclicals[curmodelnum] == 3) {
+
+      baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', by=placeid, id=2)"
+
+    }
 
     # get rid of clusters from previous model, if any
     modeldata$cluster <- NULL
