@@ -1,4 +1,4 @@
-evaluategeneration <- function(model=NULL,
+evaluateindividual <- function(model=NULL,
                                modeldata=NULL,
                                ...) {
 
