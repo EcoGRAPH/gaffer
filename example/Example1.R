@@ -94,22 +94,25 @@ mal <- as.data.frame(tempdf[1])
 env <- as.data.frame(tempdf[2])
 rm(tempdf)
 
+colnames(env)
+colnames(mal)
+
 # decide which variable we're modeling
 mal$objective <- mal$robustified2
 
 # call the genetic algorithm
-modelsdf <- geneticimplement(individpergeneration = 25,
+modelsdf <- geneticimplement(individpergeneration = 2,
                              initialclusters      = 5,
                              initialcovars        = 1,
-                             generations          = 500,
+                             generations          = 4,
                              modeldata = mal,
                              envdata = env,
                              shapefile = shp,
-                             slice = 5)#,
+                             slice = 2)#,
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
 
-# load a saved file
-modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\saved outputs\\20-09-18 - amhara pfalc anom\\generation_171.csv")
+# # load a saved file
+# modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\saved outputs\\20-09-18 - amhara pfalc anom\\generation_171.csv")
 
 # reconstruct the best model
 mybest <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
@@ -206,6 +209,8 @@ cor(x=bestmal$objective,
 AIC1 <- sum(extractAIC.batch_bam(modelfit)$X2)
 AIC0 <- sum(extractAIC.batch_bam(nullfit)$X2)
 
+AIC1
+AIC0
 AIC1 - AIC0
 
 # get summaries
@@ -224,3 +229,5 @@ mean(bestscales)
 
 # take a look at the summary
 modelfit[[1]]
+
+View(modelsdf)

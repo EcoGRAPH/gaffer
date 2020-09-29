@@ -13,17 +13,6 @@ dataprocessing <- function(laglen = NULL,
   for (curenv in envnames) {
 
     env$temp <- env[,curenv]
-    # thisbatch <- batch_bam(data=env,
-    #                        bamargs=list("formula"=as.formula("temp ~ s(doy, bs='cc')"),
-    #                                     "discrete"=TRUE,
-    #                                     "nthread" = parallel::detectCores(logical=FALSE)-1),
-    #                        bamargs_fallback=list("formula"=as.formula("temp ~ 1")),
-    #                        over="placeid")
-    #
-    # env$pred <- clusterapply::predict.batch_bam(models=thisbatch,
-    #                                             newdata=env,
-    #                                             over="placeid")
-
     tempdf <- dplyr::summarise(group_by(env,
                                         placeid,
                                         doy),
