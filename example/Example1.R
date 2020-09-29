@@ -143,12 +143,31 @@ bestvars <- mybest$covars[1]
 bestvars <- unlist(strsplit(x=bestvars,
                              split=",",
                              fixed=TRUE))
-baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2)"
+
+# figure out which type of cyclicals it has
+bestcyclicals <- mybest$cylicals[1]
+if (bestcyclicals == "none") {
+
+  baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1)"
+
+}
+if (bestcyclicals == "percluster") {
+
+  baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2)"
+
+}
+if (bestcyclicals == "perplaceid") {
+
+  baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', by=placeid, id=2)"
+
+}
+
+# create the best model formula
 bestformula <- paste("s(",
-                      bestvars,
-                      "mat, by=lagmat, bs='tp')",
-                      sep="",
-                      collapse="+")
+                     bestvars,
+                     "mat, by=lagmat, bs='tp')",
+                     sep="",
+                     collapse="+")
 bestformula <- as.formula(paste(baseformula, bestformula, sep="+"))
 
 basefallback <- "objective ~ s(numdate, id=1) + s(doy, bs='cc', id=2)"
@@ -181,12 +200,6 @@ nullfit <- batch_bam(data = bestmal,
                                     "nthread" = parallel::detectCores(logical=FALSE)-1),
                      bamargs_fallback = list("formula" = fallbackformula),
                      over = "constantone")
-# nullfit <- bam(data = bestmal,
-#                formula = bestformula,
-#                family = gaussian(),
-#                discrete = TRUE,
-#                nthread = parallel::detectCores(logical=FALSE)-1)
-
 bestmal$nullpreds <- clusterapply::predict.batch_bam(models=nullfit,
                                                      predictargs=NULL,
                                                      over="constantone",
@@ -206,6 +219,8 @@ cor(x=bestmal$objective,
 AIC1 <- sum(extractAIC.batch_bam(modelfit)$X2)
 AIC0 <- sum(extractAIC.batch_bam(nullfit)$X2)
 
+# the first of these should be the same as reported in the CSV,
+# although we've calculated it separately outside the main loop
 AIC1
 AIC0
 AIC1 - AIC0
@@ -227,4 +242,7 @@ mean(bestscales)
 # take a look at the summary
 modelfit[[1]]
 
-View(modelsdf)
+# see how many NAs we have - should be very small if not zero
+sum(is.na(bestmal$bestpreds))
+sum(is.na(bestmal$nullpreds))
+sum(is.na(bestmal$objective))

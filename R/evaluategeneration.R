@@ -27,7 +27,7 @@ evaluategeneration <- function(models=NULL,
       baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2)"
 
     }
-    if (models$cyclicals[curmodelnum] == "perworeda") {
+    if (models$cyclicals[curmodelnum] == "perplaceid") {
 
       baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', by=placeid, id=2)"
 
