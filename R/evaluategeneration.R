@@ -17,17 +17,17 @@ evaluategeneration <- function(models=NULL,
   # run batch_bam on all the models
   for (curmodelnum in 1:nrow(models)) {
 
-    if (models$cyclicals[curmodelnum] == 1) {
+    if (models$cyclicals[curmodelnum] == "none") {
 
       baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1)"
 
     }
-    if (models$cyclicals[curmodelnum] == 2) {
+    if (models$cyclicals[curmodelnum] == "percluster") {
 
       baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2)"
 
     }
-    if (models$cyclicals[curmodelnum] == 3) {
+    if (models$cyclicals[curmodelnum] == "perworeda") {
 
       baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', by=placeid, id=2)"
 

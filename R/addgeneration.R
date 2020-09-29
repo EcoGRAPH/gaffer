@@ -147,7 +147,7 @@ addgeneration <- function(models=NULL,
     # if we're adding a variable
     if (newgen$mutation[i] == "cyclicals") {
 
-      newgen$cyclicals[i] <- sample(1:3, size=1)
+      newgen$cyclicals[i] <- sample(c("none", "percluster", "perworeda"), size=1)
 
     }
 

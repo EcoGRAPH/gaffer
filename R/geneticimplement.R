@@ -51,7 +51,7 @@ geneticimplement <- function(individpergeneration = NULL,
                                          replace=FALSE),
                                   collapse=",")
 
-      modelsdf$cyclicals[i] <- sample(1:3, size=1)
+      modelsdf$cyclicals[i] <- sample(c("none", "percluster", "perworeda"), size=1)
 
     }
 
