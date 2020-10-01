@@ -98,7 +98,7 @@ rm(tempdf)
 mal$objective <- mal$robustified2
 
 # call the genetic algorithm
-modelsdf <- geneticimplement(individpergeneration = 50,
+modelsdf <- geneticimplement(individpergeneration = 25,
                              initialclusters      = 5,
                              initialcovars        = 1,
                              generations          = 500,
@@ -109,7 +109,7 @@ modelsdf <- geneticimplement(individpergeneration = 50,
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
 
 # # load a saved file
-# modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\saved outputs\\20-09-18 - amhara pfalc anom\\generation_171.csv")
+modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
 
 # reconstruct the best model
 mybest <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
@@ -145,7 +145,7 @@ bestvars <- unlist(strsplit(x=bestvars,
                              fixed=TRUE))
 
 # figure out which type of cyclicals it has
-bestcyclicals <- mybest$cylicals[1]
+bestcyclicals <- mybest$cyclicals[1]
 if (bestcyclicals == "none") {
 
   baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1)"
