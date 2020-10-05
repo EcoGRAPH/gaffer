@@ -118,7 +118,7 @@ modelsdf <- geneticimplement(individpergeneration = 2,
                              slice = 2)#,
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
 
-# # load a saved file
+# # # load a saved file
 # modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
 
 # reconstruct the best model
@@ -179,7 +179,7 @@ fallbackformula <- as.formula(basefallback)
 
 bestmal$placeid <- factor(bestmal$placeid)
 
-modelfit <- batch_bam(data = bestmal,
+bestfit  <- batch_bam(data = bestmal,
                       bamargs = list("formula" = bestformula,
                                      "family" = gaussian(),
                                      "discrete" = TRUE,
@@ -187,7 +187,7 @@ modelfit <- batch_bam(data = bestmal,
                       bamargs_fallback = list("formula" = fallbackformula),
                       over = "bestmodel")
 
-bestmal$bestpreds <- clusterapply::predict.batch_bam(models=modelfit,
+bestmal$bestpreds <- clusterapply::predict.batch_bam(models=bestfit,
                                                  predictargs=NULL,
                                                  over="bestmodel",
                                                  newdata=bestmal)
@@ -195,26 +195,26 @@ ggplot(bestmal) + geom_hex(aes(x=objective, y=bestpreds)) +
   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
   ggtitle("preds vs. obs (best model) after 200 generations")
 
-# calculate a null model fit
+# calculate a singlecluster model fit
 bestmal$constantone <- factor(1)
-nullfit <- batch_bam(data = bestmal,
+singleclusterfit <- batch_bam(data = bestmal,
                      bamargs = list("formula" = bestformula,
                                     "family" = gaussian(),
                                     "discrete" = TRUE,
                                     "nthread" = parallel::detectCores(logical=FALSE)-1),
                      bamargs_fallback = list("formula" = fallbackformula),
                      over = "constantone")
-bestmal$nullpreds <- clusterapply::predict.batch_bam(models=nullfit,
+bestmal$singleclusterpreds <- clusterapply::predict.batch_bam(models=singleclusterfit,
                                                      predictargs=NULL,
                                                      over="constantone",
                                                      newdata=bestmal)
 
-ggplot(bestmal) + geom_hex(aes(x=objective, y=nullpreds)) +
+ggplot(bestmal) + geom_hex(aes(x=objective, y=singleclusterpreds)) +
   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
-  ggtitle("preds vs. obs (null model) after 200 generations")
+  ggtitle("preds vs. obs (singlecluster model) after 200 generations")
 
 AIC1 <- sum(extractAIC.batch_bam(modelfit)$X2)
-AIC0 <- sum(extractAIC.batch_bam(nullfit)$X2)
+AIC0 <- sum(extractAIC.batch_bam(singleclusterfit)$X2)
 
 # the first of these should be the same as reported in the CSV,
 # although we've calculated it separately outside the main loop
@@ -224,14 +224,14 @@ AIC1 - AIC0
 
 # get summaries
 bestsummary <- clusterapply::summary.batch_bam(modelfit)
-nullsummary <- clusterapply::summary.batch_bam(nullfit)
+singleclustersummary <- clusterapply::summary.batch_bam(singleclusterfit)
 
 # get estimated scales
 bestscales <- unlist(lapply(bestsummary, "[[", "scale"))
-nullscales <- unlist(lapply(nullsummary, "[[", "scale"))
+singleclusterscales <- unlist(lapply(singleclustersummary, "[[", "scale"))
 
 bestscales
-nullscales
+singleclusterscales
 
 exp(mean(log(bestscales)))
 mean(bestscales)
@@ -241,22 +241,85 @@ modelfit[[1]]
 
 # see how many NAs we have - should be very small if not zero
 sum(is.na(bestmal$bestpreds))
-sum(is.na(bestmal$nullpreds))
+sum(is.na(bestmal$singleclusterpreds))
 sum(is.na(bestmal$objective))
 
 cor(x=bestmal$objective,
     y=bestmal$bestpreds,
     use="complete.obs")
 cor(x=bestmal$objective,
-    y=bestmal$nullpreds,
+    y=bestmal$singleclusterpreds,
     use="complete.obs")
 
 # look at correlations by woreda
 gofbyplace <- dplyr::summarise(group_by(bestmal, placeid),
                                bestcor = cor(objective, bestpreds, use="complete.obs"),
-                               nullcor = cor(objective, nullpreds, use="complete.obs"))
+                               singleclustercor = cor(objective, singleclusterpreds, use="complete.obs"))
 shp <- left_join(shp, gofbyplace, by="placeid")
 ggplot(shp) + geom_sf(aes(fill=bestcor)) +
   scale_fill_gradient2(low="darkblue", mid="lightyellow", high="darkred", midpoint=0.5)
-ggplot(shp) + geom_sf(aes(fill=nullcor)) +
+ggplot(shp) + geom_sf(aes(fill=singleclustercor)) +
   scale_fill_gradient2(low="darkblue", mid="lightyellow", high="darkred", midpoint=0.5)
+
+ggplot(shp) + geom_point(aes(x=singleclustercor, y=bestcor)) +
+  geom_abline(slope=1, intercept=0, linetype=2, color="red") +
+  xlim(0,1) + ylim(0,1) +
+  xlab("singlecluster performance") + ylab("gaffer performance")
+
+# gather smooths from the models
+distributedlags <- data.frame()
+# derive from gaffer fit
+for (i in 1:length(bestfit)) {
+
+  bestfit_plot <- plot.gam(bestfit[[i]], select=1)
+  for (j in 1:length(bestfit_plot)) {
+
+    if (grepl(x=bestfit_plot[[j]]$ylab,
+              pattern="lagmat",
+              fixed=TRUE)) {
+
+        tempdf <- data.frame(model = "gaffer",
+                             cluster = names(bestfit)[i],
+                             variable = bestfit_plot[[j]]$xlab,
+                             x = bestfit_plot[[j]]$x,
+                             fit = bestfit_plot[[j]]$fit)
+
+        distributedlags <- bind_rows(distributedlags, tempdf)
+
+    }
+
+  }
+
+}
+# derive from singlecluster fit
+for (i in 1:length(singleclusterfit)) {
+
+  singleclusterfit_plot <- plot.gam(singleclusterfit[[i]], select=1)
+  for (j in 1:length(singleclusterfit_plot)) {
+
+    if (grepl(x=singleclusterfit_plot[[j]]$ylab,
+              pattern="lagmat",
+              fixed=TRUE)) {
+
+      tempdf <- data.frame(model = "singlecluster",
+                           cluster = names(singleclusterfit)[i],
+                           variable = singleclusterfit_plot[[j]]$xlab,
+                           x = singleclusterfit_plot[[j]]$x,
+                           fit = singleclusterfit_plot[[j]]$fit)
+
+      distributedlags <- bind_rows(distributedlags, tempdf)
+
+    }
+
+  }
+
+}
+
+distributedlags$model_cluster <- paste(distributedlags$model,
+                                       distributedlags$cluster,
+                                       sep="_")
+ggplot(distributedlags) + geom_line(aes(x=x, y=fit,
+                                        group=model_cluster,
+                                        color=model,
+                                        size=model)) +
+  facet_wrap(~variable, scales="free")
