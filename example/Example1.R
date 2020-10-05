@@ -260,9 +260,9 @@ modelpreds      <- data.frame(placeid   = bestmal$place,
 modelgofs       <- data.frame()
 shapefilegofs   <- NULL
 # declare which models we're taking smooths from
-whichmodels <- list("gaffer"=bestfit,
-                    "singlecluster"=singleclusterfit,
-                    "secular"=secularfit)
+whichmodels <- list("singlecluster"=singleclusterfit,
+                    "secular"=secularfit,
+                    "gaffer"=bestfit)
 # this is really ugly - the batch_bam object should store its over
 overs       <- list("gaffer"="bestmodel",
                     "singlecluster"="constantone",
@@ -323,7 +323,7 @@ for (whichmodel in names(whichmodels)) {
 
           tempdf <- data.frame(model = whichmodel,
                                cluster = names(thisfit)[i],
-                               variable = thisfit_plot[[j]]$xlab,
+                               variable = thisfit_plot[[j]]$ylab,
                                x = thisfit_plot[[j]]$x,
                                fit = thisfit_plot[[j]]$fit)
 
@@ -336,16 +336,23 @@ for (whichmodel in names(whichmodels)) {
   }
 
 }
+distributedlags$variable <- unlist(lapply(strsplit(x=distributedlags$variable,
+                                            split=":",
+                                            fixed=TRUE), "[[", 2))
+
 
 # display distributed lags
 distributedlags$model_cluster <- paste(distributedlags$model,
                                        distributedlags$cluster,
                                        sep="_")
+
 ggplot(distributedlags) + geom_line(aes(x=x, y=fit,
                                         group=model_cluster,
                                         color=model),
                                     size=2) +
   facet_wrap(~variable, scales="free")
+
+View(distributedlags)
 
 # display universal fits
 modelpreds <- pivot_longer(data=modelpreds, cols=ends_with("_pred"))
