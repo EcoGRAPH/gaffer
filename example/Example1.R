@@ -221,8 +221,8 @@ singleclusterfit <- batch_bam(data = bestmal,
 
 ####### SECULAR MODEL #######
 secularformula  <- as.formula("objective ~ placeid + s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2)")
-saturatedfit <- batch_bam(data = bestmal,
-                          bamargs = list("formula" = secularformla,
+secularfit   <- batch_bam(data = bestmal,
+                          bamargs = list("formula" = secularformula,
                                          "family" = gaussian(),
                                          "discrete" = TRUE,
                                          "nthread" = parallel::detectCores(logical=FALSE)-1),
@@ -293,16 +293,30 @@ saturatedfit <- batch_bam(data = bestmal,
 
 # gather smooths from the models
 distributedlags <- data.frame()
+modelpreds      <- data.frame(placeid   = bestmal$place,
+                              date      = bestmal$date,
+                              objective = bestmal$objective)
+modelgofs       <- data.frame()
 # declare which models we're taking smooths from
 # this doubles the size of models in memory and is the cleanest
 # approach in code but is not the cleanest approach in memory
 whichmodels <- list("gaffer"=bestfit,
                     "singlecluster"=singleclusterfit,
-                    #"saturated"=saturatedfit,
                     "secular"=secularfit)
+# this is really ugly - the batch_bam object should store its over
+overs       <- list("gaffer"="bestmodel",
+                    "singlecluster"="constantone",
+                    "secular"="bestmodel")
 for (whichmodel in names(whichmodels)) {
 
   thisfit <- whichmodels[[whichmodel]]
+  thisover <- overs[[whichmodel]]
+
+  modelpreds[,paste(whichmodel, "pred", sep="_")] <- clusterapply::predict.batch_bam(models=thisfit,
+                                                        predictargs=NULL,
+                                                        over=thisover,
+                                                        newdata=bestmal)
+
   for (i in 1:length(thisfit)) {
 
     thisfit_plot <- plot.gam(thisfit[[i]], select=1)
@@ -330,6 +344,8 @@ for (whichmodel in names(whichmodels)) {
 distributedlags$model_cluster <- paste(distributedlags$model,
                                        distributedlags$cluster,
                                        sep="_")
+
+# display distributed lags
 ggplot(distributedlags) + geom_line(aes(x=x, y=fit,
                                         group=model_cluster,
                                         color=model),
