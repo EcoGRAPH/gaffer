@@ -302,9 +302,9 @@ for (whichmodel in names(whichmodels)) {
                              pearson=cor(objective, temppred,
                                          use="complete.obs",
                                          method="pearson"),
-                             speaman=cor(objective, temppred,
-                                         use="complete.obs",
-                                         method="spearman"))
+                             spearman=cor(objective, temppred,
+                                          use="complete.obs",
+                                          method="spearman"))
   tempdf$model <- whichmodel
   shapefilegofs <- bind_rows(shapefilegofs, tempdf)
 
@@ -366,7 +366,7 @@ ggplot(reverseshp) + geom_sf(aes(fill=pearson)) +
                        midpoint=0.5) +
   facet_wrap(~model)
 
-ggplot(reverseshp) + geom_sf(aes(fill=speaman)) +
+ggplot(reverseshp) + geom_sf(aes(fill=spearman)) +
   ggtitle("Spearman") +
   scale_fill_gradient2(low="darkblue",
                        mid="lightyellow",
