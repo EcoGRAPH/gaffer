@@ -167,9 +167,9 @@ if (bestcyclicals == "perplaceid") {
 }
 
 # create the best model formula
-bestformula <- paste("s(",
+bestformula <- paste("s(lagmat, by=",
                      bestvars,
-                     "mat, by=lagmat, bs='tp')",
+                     "mat, bs='tp')",
                      sep="",
                      collapse="+")
 bestformula <- as.formula(paste(baseformula, bestformula, sep="+"))
@@ -374,3 +374,4 @@ ggplot(reverseshp) + geom_sf(aes(fill=speaman)) +
                        midpoint=0.5) +
   facet_wrap(~model)
 
+View(modelgofs)

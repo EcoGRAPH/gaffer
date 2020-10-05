@@ -56,9 +56,9 @@ evaluategeneration <- function(models=NULL,
                                  fixed=TRUE))
     if (curcovars != "none") {
 
-      covarformula <- paste("s(",
+      covarformula <- paste("s(lagmat, by=",
                             curcovars,
-                            "mat, by=lagmat, bs='tp')",
+                            "mat, bs='tp')",
                             sep="",
                             collapse="+")
       modelformula <- as.formula(paste(baseformula, covarformula, sep="+"))
