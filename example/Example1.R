@@ -107,21 +107,21 @@ mal <- as.data.frame(tempdf[1])
 env <- as.data.frame(tempdf[2])
 rm(tempdf)
 
-# call the genetic algorithm
-modelsdf <- geneticimplement(individpergeneration = 2,
-                             initialclusters      = 5,
-                             initialcovars        = 1,
-                             generations          = 4,
-                             modeldata = mal,
-                             envdata = env,
-                             shapefile = shp,
-                             slice = 2)#,
-                             #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
+# # call the genetic algorithm
+# modelsdf <- geneticimplement(individpergeneration = 2,
+#                              initialclusters      = 5,
+#                              initialcovars        = 1,
+#                              generations          = 4,
+#                              modeldata = mal,
+#                              envdata = env,
+#                              shapefile = shp,
+#                              slice = 2)#,
+#                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
 
 # load a saved file
 modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
 
-# reconstruct the best model
+####### BEST GAFFER MODEL #######
 mybest <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
 curclusterseeds <- unlist(strsplit(x=mybest$clusterseeds,
                                    split=",",
@@ -174,21 +174,12 @@ bestformula <- paste("s(",
                      collapse="+")
 bestformula <- as.formula(paste(baseformula, bestformula, sep="+"))
 
-# create the saturated model formula
-saturatedformula <- paste("s(",
-                     bestvars,
-                     "mat, by=lagmat, bs='tp')",
-                     sep="",
-                     collapse="+")
-saturatedformula  <- as.formula(paste("objective ~ s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2)",
-                                      saturatedformula, sep="+"))
-
 # create formulas in case those fail on some placeids
 basefallback <- "objective ~ s(numdate, id=1) + s(doy, bs='cc', id=2)"
 fallbackformula <- as.formula(basefallback)
 
+# calculate the best fit from the gaffer model
 bestmal$placeid <- factor(bestmal$placeid)
-
 bestfit  <- batch_bam(data = bestmal,
                       bamargs = list("formula" = bestformula,
                                      "family" = gaussian(),
@@ -197,15 +188,9 @@ bestfit  <- batch_bam(data = bestmal,
                       bamargs_fallback = list("formula" = fallbackformula),
                       over = "bestmodel")
 
-# bestmal$bestpreds <- clusterapply::predict.batch_bam(models=bestfit,
-#                                                  predictargs=NULL,
-#                                                  over="bestmodel",
-#                                                  newdata=bestmal)
-# ggplot(bestmal) + geom_hex(aes(x=objective, y=bestpreds)) +
-#   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
-#   ggtitle("preds vs. obs (best model) after 200 generations")
 
-# calculate a singlecluster model fit
+
+####### SINGLECLUSTER MODEL #######
 bestmal$constantone <- factor(1)
 singleclusterfit <- batch_bam(data = bestmal,
                               bamargs = list("formula" = bestformula,
@@ -214,14 +199,35 @@ singleclusterfit <- batch_bam(data = bestmal,
                                             "nthread" = parallel::detectCores(logical=FALSE)-1),
                               bamargs_fallback = list("formula" = fallbackformula),
                               over = "constantone")
-# calculate a saturated fit
+
+
+
+# ####### SATURATED MODEL #######
+# saturatedformula <- paste("s(",
+#                           bestvars,
+#                           "mat, by=lagmat, bs='tp')",
+#                           sep="",
+#                           collapse="+")
+# saturatedformula  <- as.formula(paste("objective ~ s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2)",
+#                                       saturatedformula, sep="+"))
+# saturatedfit <- batch_bam(data = bestmal,
+#                           bamargs = list("formula" = saturatedformula,
+#                                          "family" = gaussian(),
+#                                          "discrete" = TRUE,
+#                                          "nthread" = parallel::detectCores(logical=FALSE)-1),
+#                           bamargs_fallback = list("formula" = fallbackformula),
+#                           over = "placeid")
+
+
+####### SECULAR MODEL #######
+secularformula  <- as.formula("objective ~ placeid + s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2)")
 saturatedfit <- batch_bam(data = bestmal,
-                          bamargs = list("formula" = saturatedformula,
+                          bamargs = list("formula" = secularformla,
                                          "family" = gaussian(),
                                          "discrete" = TRUE,
                                          "nthread" = parallel::detectCores(logical=FALSE)-1),
                           bamargs_fallback = list("formula" = fallbackformula),
-                          over = "placeid")
+                          over = "bestmodel")
 
 # bestmal$singleclusterpreds <- clusterapply::predict.batch_bam(models=singleclusterfit,
 #                                                      predictargs=NULL,
@@ -292,7 +298,8 @@ distributedlags <- data.frame()
 # approach in code but is not the cleanest approach in memory
 whichmodels <- list("gaffer"=bestfit,
                     "singlecluster"=singleclusterfit,
-                    "saturated"=saturatedfit)
+                    #"saturated"=saturatedfit,
+                    "secular"=secularfit)
 for (whichmodel in names(whichmodels)) {
 
   thisfit <- whichmodels[[whichmodel]]
