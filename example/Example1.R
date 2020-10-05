@@ -5,7 +5,7 @@ packages <- c("ggplot2", "plyr", "dplyr",
               "mgcv", "splines", "parallel", "splitstackshape",
               "data.table", "quantreg", "MASS",
               "sf", "maptools", "spdep", "igraph","gaffer",
-              "clusterapply")
+              "clusterapply", "lwgeom")
 for (package in packages) {
   if (!require(package, character.only=T, quietly=T)) {
     install.packages(package, install.packages(package, repos = "http://cran.us.r-project.org"))
@@ -36,7 +36,7 @@ mal$objective <- mal$robustified2
 # screen those which have very small counts
 sumcases <- dplyr::summarise(group_by(mal, placeid),
                              sumobjective=sum(exp(objective), na.rm=TRUE))
-lowcasethreshold <- quantile(sumcases$sumobjective, probs=c(0.03))
+lowcasethreshold <- quantile(sumcases$sumobjective, probs=c(0.05))
 ggplot(sumcases) + geom_histogram(aes(x=sumobjective)) +
   geom_vline(xintercept=lowcasethreshold, linetype=2, color="red") +
   scale_x_log10()
@@ -60,7 +60,7 @@ if (!is.null(whichregion)) {
   mal <- mal[mal$placeid %in% woredanames$NewPCODE,]
 
 }
-# create an adjacency matrix
+# get the shapefile
 shp <- sf::st_read("Eth_Admin_Woreda_2019_20200205.shp")
 shp$placeid <- shp$NewPCODE
 shp$NewPCODE <- NULL
@@ -118,7 +118,7 @@ modelsdf <- geneticimplement(individpergeneration = 2,
                              slice = 2)#,
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
 
-# load a saved file
+# # load a saved file
 # modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
 
 # reconstruct the best model
@@ -137,13 +137,7 @@ for (i in 1:(length(curclusterseeds)/2)) {
 
 # put this back into a map
 shp <- left_join(shp, curclusters, by="placeid")
-adjacency <- shp[shp$placeid %in% unique(mal$placeid),]
-placeids <- adjacency$placeids
-adjacency <- nb2listw(poly2nb(adjacency,
-                              queen=TRUE,
-                              row.names=adjacency$placeid),
-                      style="B")
-shp$bestmodel <- factor(fillbynearest(adjacency=adjacency,
+shp$bestmodel <- factor(fillbynearest(shapefile=shp,
                                       covariate=shp$cluster))
 ggplot(shp) + geom_sf(aes(fill=bestmodel))
 
@@ -215,21 +209,9 @@ bestmal$nullpreds <- clusterapply::predict.batch_bam(models=nullfit,
                                                      over="constantone",
                                                      newdata=bestmal)
 
-
-
-
-
-
 ggplot(bestmal) + geom_hex(aes(x=objective, y=nullpreds)) +
   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
   ggtitle("preds vs. obs (null model) after 200 generations")
-
-cor(x=bestmal$objective,
-    y=bestmal$bestpreds,
-    use="complete.obs")
-cor(x=bestmal$objective,
-    y=bestmal$nullpreds,
-    use="complete.obs")
 
 AIC1 <- sum(extractAIC.batch_bam(modelfit)$X2)
 AIC0 <- sum(extractAIC.batch_bam(nullfit)$X2)
@@ -261,3 +243,20 @@ modelfit[[1]]
 sum(is.na(bestmal$bestpreds))
 sum(is.na(bestmal$nullpreds))
 sum(is.na(bestmal$objective))
+
+cor(x=bestmal$objective,
+    y=bestmal$bestpreds,
+    use="complete.obs")
+cor(x=bestmal$objective,
+    y=bestmal$nullpreds,
+    use="complete.obs")
+
+# look at correlations by woreda
+gofbyplace <- dplyr::summarise(group_by(bestmal, placeid),
+                               bestcor = cor(objective, bestpreds, use="complete.obs"),
+                               nullcor = cor(objective, nullpreds, use="complete.obs"))
+shp <- left_join(shp, gofbyplace, by="placeid")
+ggplot(shp) + geom_sf(aes(fill=bestcor)) +
+  scale_fill_gradient2(low="darkblue", mid="lightyellow", high="darkred", midpoint=0.5)
+ggplot(shp) + geom_sf(aes(fill=nullcor)) +
+  scale_fill_gradient2(low="darkblue", mid="lightyellow", high="darkred", midpoint=0.5)

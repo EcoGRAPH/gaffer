@@ -1,6 +1,6 @@
 evaluategeneration <- function(models=NULL,
                                modeldata=NULL,
-                               adjacency=NULL,
+                               shapefile=NULL,
                                placeids=NULL) {
 
   # make sure we start from scratch
@@ -78,7 +78,7 @@ evaluategeneration <- function(models=NULL,
                              by="placeid")
 
     # then propagate
-    curclusters$cluster <- fillbynearest(adjacency=adjacency,
+    curclusters$cluster <- fillbynearest(shapefile=shapefile,
                                          covariate=curclusters$cluster)
     modeldata <- left_join(modeldata,
                            curclusters,

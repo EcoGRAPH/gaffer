@@ -14,12 +14,6 @@ geneticimplement <- function(individpergeneration = NULL,
   adjacency <- adjacency[adjacency$placeid %in% unique(modeldata$placeid),]
   # retain a list of placeids for later
   placeids <- adjacency$placeid
-  # calculate an actual adjacency list
-  adjacency <- nb2listw(poly2nb(adjacency,
-                                queen=TRUE,
-                                row.names=adjacency$placeid),
-                        style="B",
-                        zero.policy=TRUE)
 
   # set up initial clusters and covariates
   envnames <- colnames(env)
@@ -65,7 +59,7 @@ geneticimplement <- function(individpergeneration = NULL,
     # evaluate the first generation
     modelsdf$modelmeasure <- evaluategeneration(models=modelsdf,
                                                 modeldata=mal,
-                                                adjacency=adjacency,
+                                                shapefile=shapefile,
                                                 placeids=placeids)
 
     # rank models
@@ -93,7 +87,7 @@ geneticimplement <- function(individpergeneration = NULL,
                               modeldata=mal,
                               covariatenames=envnames,
                               individualspergeneration=individpergeneration,
-                              adjacency=adjacency,
+                              shapefile=shapefile,
                               placeids=placeids)#,
                               #slice=slice)
 

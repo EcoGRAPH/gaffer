@@ -2,7 +2,7 @@ addgeneration <- function(models=NULL,
                           modeldata=NULL,
                           individualspergeneration=10,
                           covariatenames=NULL,
-                          adjacency=NULL,
+                          shapefile=NULL,
                           placeids=NULL,
                           mutationprobabilities=c(0.35, 0.35, 0.10, 0.10, 0.10),
                           mutationtypes=c("deletenode", "addnode", "dropvariable", "addvariable", "cyclicals"),
@@ -182,19 +182,20 @@ addgeneration <- function(models=NULL,
   # make sure we have model numbers
   newgen$modelnumber <- 1:nrow(newgen)
 
+  # currently serves no purpose, but it will
   if (is.null(slice)) {
 
     # evaluate new generation
     newgen$modelmeasure <- evaluategeneration(models=newgen,
                                               modeldata=mal,
-                                              adjacency=adjacency,
+                                              shapefile=shapefile,
                                               placeids=placeids) }
   else {
 
     # evaluate new generation
     newgen$modelmeasure <- evaluategeneration(models=newgen,
                                               modeldata=mal,
-                                              adjacency=adjacency,
+                                              shapefile=shapefile,
                                               placeids=placeids)
 
   }
