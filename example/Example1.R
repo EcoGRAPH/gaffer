@@ -30,6 +30,19 @@ mal$placeid <- mal$NewPCODE
 mal$NewPCODE <- NULL
 mal <- mal[!is.na(mal$placeid),]
 
+# decide which variable we're modeling
+mal$objective <- mal$robustified2
+
+# screen those which have very small counts
+sumcases <- dplyr::summarise(group_by(mal, placeid),
+                             sumobjective=sum(exp(objective), na.rm=TRUE))
+lowcasethreshold <- quantile(sumcases$sumobjective, probs=c(0.05))
+ggplot(sumcases) + geom_histogram(aes(x=sumobjective)) +
+  geom_vline(xintercept=lowcasethreshold, linetype=2, color="red") +
+  scale_x_log10()
+sumcases <- sumcases[sumcases$sumobjective <= lowcasethreshold,]
+mal <- mal[!(mal$placeid %in% sumcases$placeid),]
+
 # include the environmental data
 env_brdf <- read.csv("Allbrdf2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
 env_prec <- read.csv("Allpresp2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
@@ -94,22 +107,19 @@ mal <- as.data.frame(tempdf[1])
 env <- as.data.frame(tempdf[2])
 rm(tempdf)
 
-# decide which variable we're modeling
-mal$objective <- mal$robustified2
-
 # call the genetic algorithm
-modelsdf <- geneticimplement(individpergeneration = 25,
+modelsdf <- geneticimplement(individpergeneration = 2,
                              initialclusters      = 5,
                              initialcovars        = 1,
-                             generations          = 500,
+                             generations          = 4,
                              modeldata = mal,
                              envdata = env,
                              shapefile = shp,
                              slice = 2)#,
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
 
-# # load a saved file
-modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
+# load a saved file
+# modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
 
 # reconstruct the best model
 mybest <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
@@ -204,6 +214,11 @@ bestmal$nullpreds <- clusterapply::predict.batch_bam(models=nullfit,
                                                      predictargs=NULL,
                                                      over="constantone",
                                                      newdata=bestmal)
+
+
+
+
+
 
 ggplot(bestmal) + geom_hex(aes(x=objective, y=nullpreds)) +
   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
