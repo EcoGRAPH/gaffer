@@ -268,53 +268,36 @@ ggplot(shp) + geom_point(aes(x=singleclustercor, y=bestcor)) +
 
 # gather smooths from the models
 distributedlags <- data.frame()
+whichmodels <- list("gaffer"=bestfit,
+                    "singlecluster"=singleclusterfit)
 # derive from gaffer fit
-for (i in 1:length(bestfit)) {
+for (whichmodel in names(whichmodels)) {
 
-  bestfit_plot <- plot.gam(bestfit[[i]], select=1)
-  for (j in 1:length(bestfit_plot)) {
+  thisfit <- whichmodels[whichmodel]
+  for (i in 1:length(thisfit)) {
 
-    if (grepl(x=bestfit_plot[[j]]$ylab,
-              pattern="lagmat",
-              fixed=TRUE)) {
+    thisfit_plot <- plot.gam(thisfit[[i]], select=1)
+    for (j in 1:length(thisfit_plot)) {
 
-        tempdf <- data.frame(model = "gaffer",
-                             cluster = names(bestfit)[i],
-                             variable = bestfit_plot[[j]]$xlab,
-                             x = bestfit_plot[[j]]$x,
-                             fit = bestfit_plot[[j]]$fit)
+      if (grepl(x=thisfit_plot[[j]]$ylab,
+                pattern="lagmat",
+                fixed=TRUE)) {
 
-        distributedlags <- bind_rows(distributedlags, tempdf)
+          tempdf <- data.frame(model = whichmodel,
+                               cluster = names(thisfit)[i],
+                               variable = thisfit_plot[[j]]$xlab,
+                               x = thisfit_plot[[j]]$x,
+                               fit = thisfit_plot[[j]]$fit)
 
-    }
+          distributedlags <- bind_rows(distributedlags, tempdf)
 
-  }
-
-}
-# derive from singlecluster fit
-for (i in 1:length(singleclusterfit)) {
-
-  singleclusterfit_plot <- plot.gam(singleclusterfit[[i]], select=1)
-  for (j in 1:length(singleclusterfit_plot)) {
-
-    if (grepl(x=singleclusterfit_plot[[j]]$ylab,
-              pattern="lagmat",
-              fixed=TRUE)) {
-
-      tempdf <- data.frame(model = "singlecluster",
-                           cluster = names(singleclusterfit)[i],
-                           variable = singleclusterfit_plot[[j]]$xlab,
-                           x = singleclusterfit_plot[[j]]$x,
-                           fit = singleclusterfit_plot[[j]]$fit)
-
-      distributedlags <- bind_rows(distributedlags, tempdf)
+      }
 
     }
 
   }
 
 }
-
 distributedlags$model_cluster <- paste(distributedlags$model,
                                        distributedlags$cluster,
                                        sep="_")
