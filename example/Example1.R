@@ -36,7 +36,7 @@ mal$objective <- mal$robustified2
 # screen those which have very small counts
 sumcases <- dplyr::summarise(group_by(mal, placeid),
                              sumobjective=sum(exp(objective), na.rm=TRUE))
-lowcasethreshold <- quantile(sumcases$sumobjective, probs=c(0.05))
+lowcasethreshold <- quantile(sumcases$sumobjective, probs=c(0.03))
 ggplot(sumcases) + geom_histogram(aes(x=sumobjective)) +
   geom_vline(xintercept=lowcasethreshold, linetype=2, color="red") +
   scale_x_log10()

@@ -18,7 +18,8 @@ geneticimplement <- function(individpergeneration = NULL,
   adjacency <- nb2listw(poly2nb(adjacency,
                                 queen=TRUE,
                                 row.names=adjacency$placeid),
-                        style="B")
+                        style="B",
+                        zero.policy=TRUE)
 
   # set up initial clusters and covariates
   envnames <- colnames(env)
