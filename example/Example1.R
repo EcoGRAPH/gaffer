@@ -352,8 +352,6 @@ ggplot(distributedlags) + geom_line(aes(x=x, y=fit,
                                     size=2) +
   facet_wrap(~variable, scales="free")
 
-View(distributedlags)
-
 # display universal fits
 modelpreds <- pivot_longer(data=modelpreds, cols=ends_with("_pred"))
 ggplot(modelpreds) + geom_hex(aes(x=objective, y=value)) +
