@@ -291,15 +291,13 @@ secularfit   <- batch_bam(data = bestmal,
 #   xlim(0,1) + ylim(0,1) +
 #   xlab("singlecluster performance") + ylab("gaffer performance")
 
-# gather smooths from the models
+####### MODEL EVALUATION AND PLOTTING #######
 distributedlags <- data.frame()
 modelpreds      <- data.frame(placeid   = bestmal$place,
                               date      = bestmal$date,
                               objective = bestmal$objective)
 modelgofs       <- data.frame()
 # declare which models we're taking smooths from
-# this doubles the size of models in memory and is the cleanest
-# approach in code but is not the cleanest approach in memory
 whichmodels <- list("gaffer"=bestfit,
                     "singlecluster"=singleclusterfit,
                     "secular"=secularfit)
@@ -309,14 +307,35 @@ overs       <- list("gaffer"="bestmodel",
                     "secular"="bestmodel")
 for (whichmodel in names(whichmodels)) {
 
+  # load the model and its parameters
   thisfit <- whichmodels[[whichmodel]]
   thisover <- overs[[whichmodel]]
 
+  # calculate the predictions for this model
   modelpreds[,paste(whichmodel, "pred", sep="_")] <- clusterapply::predict.batch_bam(models=thisfit,
                                                         predictargs=NULL,
                                                         over=thisover,
                                                         newdata=bestmal)
 
+  # get some goodness of fit statistics
+  tempdf <- data.frame(model=whichmodel,
+                       df =sum(extractAIC.batch_bam(thisfit)$X1),
+                       AIC=sum(extractAIC.batch_bam(thisfit)$X2),
+                       pearson=cor(modelpreds$objective,
+                                   modelpreds[,paste(whichmodel, "pred", sep="_")],
+                                   use="complete.obs",
+                                   method="pearson"),
+                       spearman=cor(modelpreds$objective,
+                                    modelpreds[,paste(whichmodel, "pred", sep="_")],
+                                    use="complete.obs",
+                                    method="spearman"),
+                       MAE_log=mean(abs(modelpreds$objective - modelpreds[,paste(whichmodel, "pred", sep="_")])),
+                       MAE    =mean(abs(exp(modelpreds$objective) - exp(modelpreds[,paste(whichmodel, "pred", sep="_")]))))
+
+  modelgofs <- bind_rows(modelgofs,
+                         tempdf)
+
+  # extract its distributed lags
   for (i in 1:length(thisfit)) {
 
     thisfit_plot <- plot.gam(thisfit[[i]], select=1)
@@ -341,13 +360,21 @@ for (whichmodel in names(whichmodels)) {
   }
 
 }
+
+# display distributed lags
 distributedlags$model_cluster <- paste(distributedlags$model,
                                        distributedlags$cluster,
                                        sep="_")
-
-# display distributed lags
 ggplot(distributedlags) + geom_line(aes(x=x, y=fit,
                                         group=model_cluster,
                                         color=model),
                                     size=2) +
   facet_wrap(~variable, scales="free")
+
+# display fits
+modelpreds <- pivot_longer(data=modelpreds, cols=ends_with("_pred"))
+ggplot(modelpreds) + geom_hex(aes(x=objective, y=value)) +
+  geom_abline(slope=1, intercept=0, linetype=2, color="red") +
+  facet_wrap(~name, scales="free")
+
+View(modelgofs)
