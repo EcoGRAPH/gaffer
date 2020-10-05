@@ -229,24 +229,6 @@ secularfit   <- batch_bam(data = bestmal,
                           bamargs_fallback = list("formula" = fallbackformula),
                           over = "bestmodel")
 
-# bestmal$singleclusterpreds <- clusterapply::predict.batch_bam(models=singleclusterfit,
-#                                                      predictargs=NULL,
-#                                                      over="constantone",
-#                                                      newdata=bestmal)
-
-# ggplot(bestmal) + geom_hex(aes(x=objective, y=singleclusterpreds)) +
-#   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
-#   ggtitle("preds vs. obs (singlecluster model) after 200 generations")
-#
-# AIC1 <- sum(extractAIC.batch_bam(modelfit)$X2)
-# AIC0 <- sum(extractAIC.batch_bam(singleclusterfit)$X2)
-#
-# # the first of these should be the same as reported in the CSV,
-# # although we've calculated it separately outside the main loop
-# AIC1
-# AIC0
-# AIC1 - AIC0
-#
 # # get summaries
 # bestsummary <- clusterapply::summary.batch_bam(modelfit)
 # singleclustersummary <- clusterapply::summary.batch_bam(singleclusterfit)
@@ -254,28 +236,7 @@ secularfit   <- batch_bam(data = bestmal,
 # # get estimated scales
 # bestscales <- unlist(lapply(bestsummary, "[[", "scale"))
 # singleclusterscales <- unlist(lapply(singleclustersummary, "[[", "scale"))
-#
-# bestscales
-# singleclusterscales
-#
-# exp(mean(log(bestscales)))
-# mean(bestscales)
-#
-# # take a look at the summary
-# modelfit[[1]]
-#
-# # see how many NAs we have - should be very small if not zero
-# sum(is.na(bestmal$bestpreds))
-# sum(is.na(bestmal$singleclusterpreds))
-# sum(is.na(bestmal$objective))
-#
-# cor(x=bestmal$objective,
-#     y=bestmal$bestpreds,
-#     use="complete.obs")
-# cor(x=bestmal$objective,
-#     y=bestmal$singleclusterpreds,
-#     use="complete.obs")
-#
+
 # # look at correlations by woreda
 # gofbyplace <- dplyr::summarise(group_by(bestmal, placeid),
 #                                bestcor = cor(objective, bestpreds, use="complete.obs"),
@@ -297,6 +258,7 @@ modelpreds      <- data.frame(placeid   = bestmal$place,
                               date      = bestmal$date,
                               objective = bestmal$objective)
 modelgofs       <- data.frame()
+shapefilegofs   <- NULL
 # declare which models we're taking smooths from
 whichmodels <- list("gaffer"=bestfit,
                     "singlecluster"=singleclusterfit,
@@ -317,23 +279,37 @@ for (whichmodel in names(whichmodels)) {
                                                         over=thisover,
                                                         newdata=bestmal)
 
-  # get some goodness of fit statistics
+  # define a convenience
+  modelpreds$temppred <- modelpreds[,paste(whichmodel, "pred", sep="_")]
+  # get some universal goodness of fit statistics
   tempdf <- data.frame(model=whichmodel,
                        df =sum(extractAIC.batch_bam(thisfit)$X1),
                        AIC=sum(extractAIC.batch_bam(thisfit)$X2),
                        pearson=cor(modelpreds$objective,
-                                   modelpreds[,paste(whichmodel, "pred", sep="_")],
+                                   modelpreds$temppred,
                                    use="complete.obs",
                                    method="pearson"),
                        spearman=cor(modelpreds$objective,
-                                    modelpreds[,paste(whichmodel, "pred", sep="_")],
+                                    modelpreds$temppred,
                                     use="complete.obs",
                                     method="spearman"),
-                       MAE_log=mean(abs(modelpreds$objective - modelpreds[,paste(whichmodel, "pred", sep="_")])),
-                       MAE    =mean(abs(exp(modelpreds$objective) - exp(modelpreds[,paste(whichmodel, "pred", sep="_")]))))
+                       MAE_log=mean(abs(modelpreds$objective - modelpreds$temppred)),
+                       MAE    =mean(abs(exp(modelpreds$objective) - exp(modelpreds$temppred))))
+  modelgofs <- bind_rows(modelgofs, tempdf)
 
-  modelgofs <- bind_rows(modelgofs,
-                         tempdf)
+  # get fit statistics by placeid
+  tempdf <- dplyr::summarise(group_by(modelpreds, placeid),
+                             pearson=cor(objective, temppred,
+                                         use="complete.obs",
+                                         method="pearson"),
+                             speaman=cor(objective, temppred,
+                                         use="complete.obs",
+                                         method="spearman"))
+  tempdf$model <- whichmodel
+  shapefilegofs <- bind_rows(shapefilegofs, tempdf)
+
+  # delete convenience variable
+  modelpreds$temppred <- NULL
 
   # extract its distributed lags
   for (i in 1:length(thisfit)) {
@@ -371,10 +347,30 @@ ggplot(distributedlags) + geom_line(aes(x=x, y=fit,
                                     size=2) +
   facet_wrap(~variable, scales="free")
 
-# display fits
+# display universal fits
 modelpreds <- pivot_longer(data=modelpreds, cols=ends_with("_pred"))
 ggplot(modelpreds) + geom_hex(aes(x=objective, y=value)) +
   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
   facet_wrap(~name, scales="free")
 
-View(modelgofs)
+# plot by model
+reverseshp <- left_join(shapefilegofs,
+                        shp,
+                        by="placeid")
+st_geometry(reverseshp) <- reverseshp$geometry
+ggplot(reverseshp) + geom_sf(aes(fill=pearson)) +
+  ggtitle("Pearson") +
+  scale_fill_gradient2(low="darkblue",
+                       mid="lightyellow",
+                       high="darkred",
+                       midpoint=0.5) +
+  facet_wrap(~model)
+
+ggplot(reverseshp) + geom_sf(aes(fill=speaman)) +
+  ggtitle("Spearman") +
+  scale_fill_gradient2(low="darkblue",
+                       mid="lightyellow",
+                       high="darkred",
+                       midpoint=0.5) +
+  facet_wrap(~model)
+
