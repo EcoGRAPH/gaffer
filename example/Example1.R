@@ -118,8 +118,8 @@ modelsdf <- geneticimplement(individpergeneration = 2,
                              slice = 2)#,
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
 
-# # # load a saved file
-# modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
+# load a saved file
+modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
 
 # reconstruct the best model
 mybest <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
@@ -174,6 +174,16 @@ bestformula <- paste("s(",
                      collapse="+")
 bestformula <- as.formula(paste(baseformula, bestformula, sep="+"))
 
+# create the saturated model formula
+saturatedformula <- paste("s(",
+                     bestvars,
+                     "mat, by=lagmat, bs='tp')",
+                     sep="",
+                     collapse="+")
+saturatedformula  <- as.formula(paste("objective ~ s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2)",
+                                      saturatedformula, sep="+"))
+
+# create formulas in case those fail on some placeids
 basefallback <- "objective ~ s(numdate, id=1) + s(doy, bs='cc', id=2)"
 fallbackformula <- as.formula(basefallback)
 
@@ -187,93 +197,105 @@ bestfit  <- batch_bam(data = bestmal,
                       bamargs_fallback = list("formula" = fallbackformula),
                       over = "bestmodel")
 
-bestmal$bestpreds <- clusterapply::predict.batch_bam(models=bestfit,
-                                                 predictargs=NULL,
-                                                 over="bestmodel",
-                                                 newdata=bestmal)
-ggplot(bestmal) + geom_hex(aes(x=objective, y=bestpreds)) +
-  geom_abline(slope=1, intercept=0, linetype=2, color="red") +
-  ggtitle("preds vs. obs (best model) after 200 generations")
+# bestmal$bestpreds <- clusterapply::predict.batch_bam(models=bestfit,
+#                                                  predictargs=NULL,
+#                                                  over="bestmodel",
+#                                                  newdata=bestmal)
+# ggplot(bestmal) + geom_hex(aes(x=objective, y=bestpreds)) +
+#   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
+#   ggtitle("preds vs. obs (best model) after 200 generations")
 
 # calculate a singlecluster model fit
 bestmal$constantone <- factor(1)
 singleclusterfit <- batch_bam(data = bestmal,
-                     bamargs = list("formula" = bestformula,
-                                    "family" = gaussian(),
-                                    "discrete" = TRUE,
-                                    "nthread" = parallel::detectCores(logical=FALSE)-1),
-                     bamargs_fallback = list("formula" = fallbackformula),
-                     over = "constantone")
-bestmal$singleclusterpreds <- clusterapply::predict.batch_bam(models=singleclusterfit,
-                                                     predictargs=NULL,
-                                                     over="constantone",
-                                                     newdata=bestmal)
+                              bamargs = list("formula" = bestformula,
+                                             "family" = gaussian(),
+                                             "discrete" = TRUE,
+                                            "nthread" = parallel::detectCores(logical=FALSE)-1),
+                              bamargs_fallback = list("formula" = fallbackformula),
+                              over = "constantone")
+# calculate a saturated fit
+saturatedfit <- batch_bam(data = bestmal,
+                          bamargs = list("formula" = saturatedformula,
+                                         "family" = gaussian(),
+                                         "discrete" = TRUE,
+                                         "nthread" = parallel::detectCores(logical=FALSE)-1),
+                          bamargs_fallback = list("formula" = fallbackformula),
+                          over = "placeid")
 
-ggplot(bestmal) + geom_hex(aes(x=objective, y=singleclusterpreds)) +
-  geom_abline(slope=1, intercept=0, linetype=2, color="red") +
-  ggtitle("preds vs. obs (singlecluster model) after 200 generations")
+# bestmal$singleclusterpreds <- clusterapply::predict.batch_bam(models=singleclusterfit,
+#                                                      predictargs=NULL,
+#                                                      over="constantone",
+#                                                      newdata=bestmal)
 
-AIC1 <- sum(extractAIC.batch_bam(modelfit)$X2)
-AIC0 <- sum(extractAIC.batch_bam(singleclusterfit)$X2)
-
-# the first of these should be the same as reported in the CSV,
-# although we've calculated it separately outside the main loop
-AIC1
-AIC0
-AIC1 - AIC0
-
-# get summaries
-bestsummary <- clusterapply::summary.batch_bam(modelfit)
-singleclustersummary <- clusterapply::summary.batch_bam(singleclusterfit)
-
-# get estimated scales
-bestscales <- unlist(lapply(bestsummary, "[[", "scale"))
-singleclusterscales <- unlist(lapply(singleclustersummary, "[[", "scale"))
-
-bestscales
-singleclusterscales
-
-exp(mean(log(bestscales)))
-mean(bestscales)
-
-# take a look at the summary
-modelfit[[1]]
-
-# see how many NAs we have - should be very small if not zero
-sum(is.na(bestmal$bestpreds))
-sum(is.na(bestmal$singleclusterpreds))
-sum(is.na(bestmal$objective))
-
-cor(x=bestmal$objective,
-    y=bestmal$bestpreds,
-    use="complete.obs")
-cor(x=bestmal$objective,
-    y=bestmal$singleclusterpreds,
-    use="complete.obs")
-
-# look at correlations by woreda
-gofbyplace <- dplyr::summarise(group_by(bestmal, placeid),
-                               bestcor = cor(objective, bestpreds, use="complete.obs"),
-                               singleclustercor = cor(objective, singleclusterpreds, use="complete.obs"))
-shp <- left_join(shp, gofbyplace, by="placeid")
-ggplot(shp) + geom_sf(aes(fill=bestcor)) +
-  scale_fill_gradient2(low="darkblue", mid="lightyellow", high="darkred", midpoint=0.5)
-ggplot(shp) + geom_sf(aes(fill=singleclustercor)) +
-  scale_fill_gradient2(low="darkblue", mid="lightyellow", high="darkred", midpoint=0.5)
-
-ggplot(shp) + geom_point(aes(x=singleclustercor, y=bestcor)) +
-  geom_abline(slope=1, intercept=0, linetype=2, color="red") +
-  xlim(0,1) + ylim(0,1) +
-  xlab("singlecluster performance") + ylab("gaffer performance")
+# ggplot(bestmal) + geom_hex(aes(x=objective, y=singleclusterpreds)) +
+#   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
+#   ggtitle("preds vs. obs (singlecluster model) after 200 generations")
+#
+# AIC1 <- sum(extractAIC.batch_bam(modelfit)$X2)
+# AIC0 <- sum(extractAIC.batch_bam(singleclusterfit)$X2)
+#
+# # the first of these should be the same as reported in the CSV,
+# # although we've calculated it separately outside the main loop
+# AIC1
+# AIC0
+# AIC1 - AIC0
+#
+# # get summaries
+# bestsummary <- clusterapply::summary.batch_bam(modelfit)
+# singleclustersummary <- clusterapply::summary.batch_bam(singleclusterfit)
+#
+# # get estimated scales
+# bestscales <- unlist(lapply(bestsummary, "[[", "scale"))
+# singleclusterscales <- unlist(lapply(singleclustersummary, "[[", "scale"))
+#
+# bestscales
+# singleclusterscales
+#
+# exp(mean(log(bestscales)))
+# mean(bestscales)
+#
+# # take a look at the summary
+# modelfit[[1]]
+#
+# # see how many NAs we have - should be very small if not zero
+# sum(is.na(bestmal$bestpreds))
+# sum(is.na(bestmal$singleclusterpreds))
+# sum(is.na(bestmal$objective))
+#
+# cor(x=bestmal$objective,
+#     y=bestmal$bestpreds,
+#     use="complete.obs")
+# cor(x=bestmal$objective,
+#     y=bestmal$singleclusterpreds,
+#     use="complete.obs")
+#
+# # look at correlations by woreda
+# gofbyplace <- dplyr::summarise(group_by(bestmal, placeid),
+#                                bestcor = cor(objective, bestpreds, use="complete.obs"),
+#                                singleclustercor = cor(objective, singleclusterpreds, use="complete.obs"))
+# shp <- left_join(shp, gofbyplace, by="placeid")
+# ggplot(shp) + geom_sf(aes(fill=bestcor)) +
+#   scale_fill_gradient2(low="darkblue", mid="lightyellow", high="darkred", midpoint=0.5)
+# ggplot(shp) + geom_sf(aes(fill=singleclustercor)) +
+#   scale_fill_gradient2(low="darkblue", mid="lightyellow", high="darkred", midpoint=0.5)
+#
+# ggplot(shp) + geom_point(aes(x=singleclustercor, y=bestcor)) +
+#   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
+#   xlim(0,1) + ylim(0,1) +
+#   xlab("singlecluster performance") + ylab("gaffer performance")
 
 # gather smooths from the models
 distributedlags <- data.frame()
+# declare which models we're taking smooths from
+# this doubles the size of models in memory and is the cleanest
+# approach in code but is not the cleanest approach in memory
 whichmodels <- list("gaffer"=bestfit,
-                    "singlecluster"=singleclusterfit)
-# derive from gaffer fit
+                    "singlecluster"=singleclusterfit,
+                    "saturated"=saturatedfit)
 for (whichmodel in names(whichmodels)) {
 
-  thisfit <- whichmodels[whichmodel]
+  thisfit <- whichmodels[[whichmodel]]
   for (i in 1:length(thisfit)) {
 
     thisfit_plot <- plot.gam(thisfit[[i]], select=1)
@@ -303,6 +325,6 @@ distributedlags$model_cluster <- paste(distributedlags$model,
                                        sep="_")
 ggplot(distributedlags) + geom_line(aes(x=x, y=fit,
                                         group=model_cluster,
-                                        color=model,
-                                        size=model)) +
+                                        color=model),
+                                    size=2) +
   facet_wrap(~variable, scales="free")
