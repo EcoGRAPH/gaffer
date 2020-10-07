@@ -113,7 +113,7 @@ sum(is.na(env))
 
 # call the genetic algorithm
 modelsdf <- geneticimplement(individpergeneration = 2,
-                             initialclusters      = 5,
+                             initialclusters      = 13,
                              initialcovars        = 1,
                              generations          = 2,
                              modeldata = mal,
@@ -284,8 +284,7 @@ for (clusters in 1:20) {
 
 }
 ggplot(wsses) + geom_point(aes(x=clusters, y=wss))
-elbowed <-  kmeans(naivefft[,2:ncol(naivefft)],
-                   13)
+elbowed <-  kmeans(naivefft[,2:ncol(naivefft)], 13)
 naivefft$fftcluster <- elbowed$cluster
 naivefftcopy$fftcluster <- elbowed$cluster
 shp <- left_join(shp, naivefft[c("placeid", "fftcluster")],
