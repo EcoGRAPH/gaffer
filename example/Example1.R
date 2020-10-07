@@ -191,7 +191,7 @@ bestfit  <- batch_bam(data = bestmal,
                                      "nthread" = parallel::detectCores(logical=FALSE)-1),
                       bamargs_fallback = list("formula" = fallbackformula),
                       over = "bestmodel")
-bestfit[[1]]
+bestfit[[3]]
 
 ####### SINGLECLUSTER MODEL #######
 bestmal$constantone <- factor(1)
