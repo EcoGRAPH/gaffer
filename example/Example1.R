@@ -111,19 +111,19 @@ rm(tempdf)
 sum(is.na(mal))
 sum(is.na(env))
 
-# # call the genetic algorithm
-# modelsdf <- geneticimplement(individpergeneration = 2,
-#                              initialclusters      = 5,
-#                              initialcovars        = 1,
-#                              generations          = 2,
-#                              modeldata = mal,
-#                              envdata = env,
-#                              shapefile = shp,
-#                              slice = 2)#,
-#                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
+# call the genetic algorithm
+modelsdf <- geneticimplement(individpergeneration = 2,
+                             initialclusters      = 5,
+                             initialcovars        = 1,
+                             generations          = 2,
+                             modeldata = mal,
+                             envdata = env,
+                             shapefile = shp,
+                             slice = 2)#,
+                             #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
 
-# load a saved file
-modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
+# # load a saved file
+# modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
 
 ####### BEST GAFFER MODEL #######
 mybest <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
@@ -191,6 +191,7 @@ bestfit  <- batch_bam(data = bestmal,
                                      "nthread" = parallel::detectCores(logical=FALSE)-1),
                       bamargs_fallback = list("formula" = fallbackformula),
                       over = "bestmodel")
+bestfit[[1]]
 
 ####### SINGLECLUSTER MODEL #######
 bestmal$constantone <- factor(1)
