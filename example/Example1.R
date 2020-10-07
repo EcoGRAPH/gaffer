@@ -36,7 +36,7 @@ mal$objective <- mal$robustified2
 # screen those which have very small counts
 sumcases <- dplyr::summarise(group_by(mal, placeid),
                              sumobjective=sum(exp(objective), na.rm=TRUE))
-lowcasethreshold <- quantile(sumcases$sumobjective, probs=c(0.05))
+lowcasethreshold <- quantile(sumcases$sumobjective, probs=c(0.10))
 ggplot(sumcases) + geom_histogram(aes(x=sumobjective)) +
   geom_vline(xintercept=lowcasethreshold, linetype=2, color="red") +
   scale_x_log10()
@@ -107,16 +107,20 @@ mal <- as.data.frame(tempdf[1])
 env <- as.data.frame(tempdf[2])
 rm(tempdf)
 
-# # call the genetic algorithm
-# modelsdf <- geneticimplement(individpergeneration = 2,
-#                              initialclusters      = 5,
-#                              initialcovars        = 1,
-#                              generations          = 4,
-#                              modeldata = mal,
-#                              envdata = env,
-#                              shapefile = shp,
-#                              slice = 2)#,
-#                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
+# test for missing in environmental and mal matrices
+sum(is.na(mal))
+sum(is.na(env))
+
+# call the genetic algorithm
+modelsdf <- geneticimplement(individpergeneration = 2,
+                             initialclusters      = 5,
+                             initialcovars        = 1,
+                             generations          = 2,
+                             modeldata = mal,
+                             envdata = env,
+                             shapefile = shp,
+                             slice = 2)#,
+                             #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
 
 # load a saved file
 modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
@@ -228,6 +232,24 @@ secularfit   <- batch_bam(data = bestmal,
                                          "nthread" = parallel::detectCores(logical=FALSE)-1),
                           bamargs_fallback = list("formula" = fallbackformula),
                           over = "bestmodel")
+
+####### K-MEANS MODEL #######
+# remove the long-term trend from every placeid
+trendformula  <- as.formula("objective ~ s(numdate, bs='tp', id=1)")
+trendfit   <- batch_bam(data = bestmal,
+                        bamargs = list("formula" = secularformula,
+                                      "family" = gaussian(),
+                                      "discrete" = TRUE,
+                                      "nthread" = parallel::detectCores(logical=FALSE)-1),
+                        bamargs_fallback = list("formula" = fallbackformula),
+                        over = "placeid")
+bestmal$trendfit <- clusterapply::predict.batch_bam(models=trendfit,
+                                                    predictargs=NULL,
+                                                    over=thisover,
+                                                    newdata=bestmal)
+
+
+
 
 # # get summaries
 # bestsummary <- clusterapply::summary.batch_bam(modelfit)
@@ -370,7 +392,6 @@ ggplot(reverseshp) + geom_sf(aes(fill=pearson)) +
                        high="darkred",
                        midpoint=0.5) +
   facet_wrap(~model)
-
 ggplot(reverseshp) + geom_sf(aes(fill=spearman)) +
   ggtitle("Spearman") +
   scale_fill_gradient2(low="darkblue",
@@ -378,5 +399,28 @@ ggplot(reverseshp) + geom_sf(aes(fill=spearman)) +
                        high="darkred",
                        midpoint=0.5) +
   facet_wrap(~model)
+
+# plot time series
+for (curplaceid in unique(modelpreds$placeid)) {
+
+  head(modelpreds)
+  tempdf <- modelpreds[modelpreds$placeid == curplaceid,]
+  thisplot <- ggplot(tempdf) + geom_line(aes(x=date,
+                                             y=objective,
+                                             group=name),
+                                         color="black") +
+    geom_line(aes(x=date, y=value,
+                  group=name,
+                  color=name,
+                  linetype=name)) +
+    ggtitle(curplaceid) +
+    theme(legend.position="bottom")
+  ggsave(thisplot,
+         file=paste(".\\time series outputs\\",
+               curplaceid,
+               ".png", sep=""))
+
+
+}
 
 View(modelgofs)

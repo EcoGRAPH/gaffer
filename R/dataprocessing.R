@@ -20,13 +20,13 @@ dataprocessing <- function(laglen = NULL,
     env <- left_join(env, tempdf, by=c("placeid", "doy"))
     rm(tempdf)
 
-    # replace missing
+    ## replace missing
     env[is.na(env$temp),curenv] <- env$meantemp[is.na(env$temp)]
     env[is.na(env$temp),curenv] <- mean(env$temp, na.rm=TRUE)
 
     # anomalize
-    env[,paste("anom_", curenv, sep="")] <- env[,curenv] - env$meantemp
-    env[is.na(env[,paste("anom_", curenv, sep="")]),paste("anom_", curenv, sep="")] <- 0
+    env[,curenv] <- env[,curenv] - env$meantemp
+    env[is.na(env[,curenv]),curenv] <- 0
 
     # remove temporary variables
     env$meantemp <- NULL
