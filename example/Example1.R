@@ -111,16 +111,16 @@ rm(tempdf)
 sum(is.na(mal))
 sum(is.na(env))
 
-# call the genetic algorithm
-modelsdf <- geneticimplement(individpergeneration = 2,
-                             initialclusters      = 5,
-                             initialcovars        = 1,
-                             generations          = 2,
-                             modeldata = mal,
-                             envdata = env,
-                             shapefile = shp,
-                             slice = 2)#,
-                             #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
+# # call the genetic algorithm
+# modelsdf <- geneticimplement(individpergeneration = 2,
+#                              initialclusters      = 5,
+#                              initialcovars        = 1,
+#                              generations          = 2,
+#                              modeldata = mal,
+#                              envdata = env,
+#                              shapefile = shp,
+#                              slice = 2)#,
+#                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
 
 # load a saved file
 modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
@@ -192,8 +192,6 @@ bestfit  <- batch_bam(data = bestmal,
                       bamargs_fallback = list("formula" = fallbackformula),
                       over = "bestmodel")
 
-
-
 ####### SINGLECLUSTER MODEL #######
 bestmal$constantone <- factor(1)
 singleclusterfit <- batch_bam(data = bestmal,
@@ -235,21 +233,101 @@ secularfit   <- batch_bam(data = bestmal,
 
 ####### K-MEANS MODEL #######
 # remove the long-term trend from every placeid
-trendformula  <- as.formula("objective ~ s(numdate, bs='tp', id=1)")
-trendfit   <- batch_bam(data = bestmal,
-                        bamargs = list("formula" = secularformula,
-                                      "family" = gaussian(),
-                                      "discrete" = TRUE,
-                                      "nthread" = parallel::detectCores(logical=FALSE)-1),
-                        bamargs_fallback = list("formula" = fallbackformula),
-                        over = "placeid")
-bestmal$trendfit <- clusterapply::predict.batch_bam(models=trendfit,
-                                                    predictargs=NULL,
-                                                    over=thisover,
-                                                    newdata=bestmal)
+trendfit <- lm(objective ~ poly(numdate, 4)*placeid,
+               data=bestmal)
+bestmal$trendfit <- predict(trendfit, newdata=bestmal)
+bestmal$trendres <- bestmal$objective - bestmal$trendfit
+ggplot(bestmal) + geom_hex(aes(x=date, y=trendres)) +
+  ggtitle("residual after removing quartic per woreda")
+# calculate Fourier coefficients for the remaining stuff
+fouriers <- data.frame()
+for (curplaceid in unique(bestmal$placeid)) {
 
+  thisplace <- bestmal[bestmal$placeid == curplaceid,]
+  tempfft   <- data.frame(placeid=curplaceid,
+                          fft=fft(thisplace[order(thisplace$numdate),]$trendres),
+                          freq=1:nrow(thisplace))
 
+  fouriers <- bind_rows(fouriers, tempfft)
 
+}
+fouriers$absfft <- abs(fouriers$fft)
+ggplot(fouriers) + geom_line(aes(x=freq,
+                                 y=absfft,
+                                 group=placeid),
+                             alpha=0.3)
+naivefft <- fouriers[fouriers$freq %in% 1:10,]
+naivefft <- pivot_wider(data=naivefft,
+                        names_from=freq,
+                        values_from=absfft,
+                        names_prefix="fft_",
+                        id_cols=placeid)
+# keep copy of naivefft for later
+naivefftcopy <- naivefft
+# rescale the columns
+for (colnum in 2:ncol(naivefft)) {
+
+  naivefft[,colnum] <- scale(naivefft[,colnum])
+
+}
+
+wsses <- data.frame()
+for (clusters in 1:20) {
+
+  mykmeans <- kmeans(naivefft[,2:ncol(naivefft)],
+                     clusters)
+
+  wsses <- bind_rows(wsses,
+                     data.frame(clusters=clusters,
+                                wss=mykmeans$tot.withinss))
+
+}
+ggplot(wsses) + geom_point(aes(x=clusters, y=wss))
+elbowed <-  kmeans(naivefft[,2:ncol(naivefft)],
+                   13)
+naivefft$fftcluster <- elbowed$cluster
+naivefftcopy$fftcluster <- elbowed$cluster
+shp <- left_join(shp, naivefft[c("placeid", "fftcluster")],
+                 by="placeid")
+shp$fftcluster <- factor(shp$fftcluster)
+ggplot(shp) + geom_sf(aes(fill=fftcluster))
+
+# reconstruct the time series
+fouriers <- left_join(fouriers,
+                      naivefftcopy[c("placeid", "fftcluster")],
+                      by="placeid")
+reconfft <- dplyr::summarise(group_by(fouriers, fftcluster, freq),
+                             meanfft = mean(fft))
+reconresiduals <- data.frame()
+for (curcluster in unique(reconfft$fftcluster)) {
+
+  thiscluster <- reconfft[reconfft$fftcluster == curcluster,]
+  tempfft   <- data.frame(cluster=curcluster,
+                          resid=fft(thiscluster$meanfft, inverse=TRUE))
+  tempfft$nobs <- 1:nrow(tempfft)
+
+  reconresiduals <- bind_rows(reconresiduals, tempfft)
+
+}
+reconresiduals$resid <- Real(reconresiduals$resid)
+reconresiduals$cluster <- factor(reconresiduals$cluster)
+
+ggplot(reconresiduals) + geom_line(aes(x=nobs, y=resid, group=cluster, color=cluster))
+
+# add reconstructed residuals back to model
+bestmal <- bestmal[order(bestmal$placeid, bestmal$numdate),]
+bestmal$nobs <- rowid(bestmal$placeid)
+bestmal <- left_join(bestmal, naivefftcopy[c("placeid", "fftcluster")],
+                     by="placeid")
+bestmal$fftcluster <- factor(bestmal$fftcluster)
+bestmal <- left_join(bestmal, reconresiduals,
+                     by=c("fftcluster"="cluster", "nobs"))
+
+# reconstruct the observation
+bestmal$kmeans_pred <- bestmal$trendfit + bestmal$resid
+
+ggplot(bestmal) + geom_hex(aes(x=objective, y=kmeans_pred)) +
+  geom_abline(slope=1, intercept=0, linetype=2, color="red")
 
 # # get summaries
 # bestsummary <- clusterapply::summary.batch_bam(modelfit)
@@ -284,40 +362,66 @@ shapefilegofs   <- NULL
 # declare which models we're taking smooths from
 whichmodels <- list("singlecluster"=singleclusterfit,
                     "secular"=secularfit,
-                    "gaffer"=bestfit)
+                    "gaffer"=bestfit,
+                    "kmeans"=kmeans)
 # this is really ugly - the batch_bam object should store its over
 overs       <- list("gaffer"="bestmodel",
                     "singlecluster"="constantone",
-                    "secular"="bestmodel")
+                    "secular"="bestmodel",
+                    "kmeans"=nullspace())
 for (whichmodel in names(whichmodels)) {
 
-  # load the model and its parameters
-  thisfit <- whichmodels[[whichmodel]]
-  thisover <- overs[[whichmodel]]
+  if (whichmodel != "kmeans") {
 
-  # calculate the predictions for this model
-  modelpreds[,paste(whichmodel, "pred", sep="_")] <- clusterapply::predict.batch_bam(models=thisfit,
-                                                        predictargs=NULL,
-                                                        over=thisover,
-                                                        newdata=bestmal)
+    # load the model and its parameters
+    thisfit <- whichmodels[[whichmodel]]
+    thisover <- overs[[whichmodel]]
 
-  # define a convenience
-  modelpreds$temppred <- modelpreds[,paste(whichmodel, "pred", sep="_")]
-  # get some universal goodness of fit statistics
-  tempdf <- data.frame(model=whichmodel,
-                       df =sum(extractAIC.batch_bam(thisfit)$X1),
-                       AIC=sum(extractAIC.batch_bam(thisfit)$X2),
-                       pearson=cor(modelpreds$objective,
-                                   modelpreds$temppred,
-                                   use="complete.obs",
-                                   method="pearson"),
-                       spearman=cor(modelpreds$objective,
-                                    modelpreds$temppred,
-                                    use="complete.obs",
-                                    method="spearman"),
-                       MAE_log=mean(abs(modelpreds$objective - modelpreds$temppred)),
-                       MAE    =mean(abs(exp(modelpreds$objective) - exp(modelpreds$temppred))))
-  modelgofs <- bind_rows(modelgofs, tempdf)
+    # calculate the predictions for this model
+    modelpreds[,paste(whichmodel, "pred", sep="_")] <- clusterapply::predict.batch_bam(models=thisfit,
+                                                          predictargs=NULL,
+                                                          over=thisover,
+                                                          newdata=bestmal)
+
+    # define a convenience
+    modelpreds$temppred <- modelpreds[,paste(whichmodel, "pred", sep="_")]
+    # get some universal goodness of fit statistics
+    tempdf <- data.frame(model=whichmodel,
+                         df =sum(extractAIC.batch_bam(thisfit)$X1),
+                         AIC=sum(extractAIC.batch_bam(thisfit)$X2),
+                         pearson=cor(modelpreds$objective,
+                                     modelpreds$temppred,
+                                     use="complete.obs",
+                                     method="pearson"),
+                         spearman=cor(modelpreds$objective,
+                                      modelpreds$temppred,
+                                      use="complete.obs",
+                                      method="spearman"),
+                         MAE_log=mean(abs(modelpreds$objective - modelpreds$temppred)),
+                         MAE    =mean(abs(exp(modelpreds$objective) - exp(modelpreds$temppred))))
+    modelgofs <- bind_rows(modelgofs, tempdf)
+
+  } else {
+
+    # define a convenience
+    modelpreds$temppred <- modelpreds[,paste(whichmodel, "pred", sep="_")]
+    # get some universal goodness of fit statistics
+    tempdf <- data.frame(model=whichmodel,
+                         df =NA,
+                         AIC=NA,
+                         pearson=cor(modelpreds$objective,
+                                     modelpreds$temppred,
+                                     use="complete.obs",
+                                     method="pearson"),
+                         spearman=cor(modelpreds$objective,
+                                      modelpreds$temppred,
+                                      use="complete.obs",
+                                      method="spearman"),
+                         MAE_log=mean(abs(modelpreds$objective - modelpreds$temppred)),
+                         MAE    =mean(abs(exp(modelpreds$objective) - exp(modelpreds$temppred))))
+    modelgofs <- bind_rows(modelgofs, tempdf)
+
+  }
 
   # get fit statistics by placeid
   tempdf <- dplyr::summarise(group_by(modelpreds, placeid),
@@ -333,23 +437,27 @@ for (whichmodel in names(whichmodels)) {
   # delete convenience variable
   modelpreds$temppred <- NULL
 
-  # extract its distributed lags
-  for (i in 1:length(thisfit)) {
+  if (whichmodel != "kmeans") {
 
-    thisfit_plot <- plot.gam(thisfit[[i]], select=1)
-    for (j in 1:length(thisfit_plot)) {
+    # extract its distributed lags
+    for (i in 1:length(thisfit)) {
 
-      if (grepl(x=thisfit_plot[[j]]$ylab,
-                pattern="lagmat",
-                fixed=TRUE)) {
+      thisfit_plot <- plot.gam(thisfit[[i]], select=1)
+      for (j in 1:length(thisfit_plot)) {
 
-          tempdf <- data.frame(model = whichmodel,
-                               cluster = names(thisfit)[i],
-                               variable = thisfit_plot[[j]]$ylab,
-                               x = thisfit_plot[[j]]$x,
-                               fit = thisfit_plot[[j]]$fit)
+        if (grepl(x=thisfit_plot[[j]]$ylab,
+                  pattern="lagmat",
+                  fixed=TRUE)) {
 
-          distributedlags <- bind_rows(distributedlags, tempdf)
+            tempdf <- data.frame(model = whichmodel,
+                                 cluster = names(thisfit)[i],
+                                 variable = thisfit_plot[[j]]$ylab,
+                                 x = thisfit_plot[[j]]$x,
+                                 fit = thisfit_plot[[j]]$fit)
+
+            distributedlags <- bind_rows(distributedlags, tempdf)
+
+        }
 
       }
 
