@@ -298,6 +298,7 @@ fouriers <- left_join(fouriers,
                       by="placeid")
 reconfft <- dplyr::summarise(group_by(fouriers, fftcluster, freq),
                              meanfft = mean(fft))
+
 reconresiduals <- data.frame()
 for (curcluster in unique(reconfft$fftcluster)) {
 
@@ -309,7 +310,8 @@ for (curcluster in unique(reconfft$fftcluster)) {
   reconresiduals <- bind_rows(reconresiduals, tempfft)
 
 }
-reconresiduals$resid <- Real(reconresiduals$resid)
+# normalize
+reconresiduals$resid <- Real(reconresiduals$resid) / max(reconresiduals$nobs)
 reconresiduals$cluster <- factor(reconresiduals$cluster)
 
 ggplot(reconresiduals) + geom_line(aes(x=nobs, y=resid, group=cluster, color=cluster))
@@ -368,7 +370,7 @@ whichmodels <- list("singlecluster"=singleclusterfit,
 overs       <- list("gaffer"="bestmodel",
                     "singlecluster"="constantone",
                     "secular"="bestmodel",
-                    "kmeans"=nullspace())
+                    "kmeans"=NA)
 for (whichmodel in names(whichmodels)) {
 
   if (whichmodel != "kmeans") {
@@ -404,7 +406,8 @@ for (whichmodel in names(whichmodels)) {
   } else {
 
     # define a convenience
-    modelpreds$temppred <- modelpreds[,paste(whichmodel, "pred", sep="_")]
+    modelpreds$kmeans_pred <- bestmal$kmeans_pred
+    modelpreds$temppred <- bestmal$kmeans_pred
     # get some universal goodness of fit statistics
     tempdf <- data.frame(model=whichmodel,
                          df =NA,
@@ -511,7 +514,6 @@ ggplot(reverseshp) + geom_sf(aes(fill=spearman)) +
 # plot time series
 for (curplaceid in unique(modelpreds$placeid)) {
 
-  head(modelpreds)
   tempdf <- modelpreds[modelpreds$placeid == curplaceid,]
   thisplot <- ggplot(tempdf) + geom_line(aes(x=date,
                                              y=objective,
