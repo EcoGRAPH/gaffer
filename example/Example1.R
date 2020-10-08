@@ -191,7 +191,6 @@ bestfit  <- batch_bam(data = bestmal,
                                      "nthread" = parallel::detectCores(logical=FALSE)-1),
                       bamargs_fallback = list("formula" = fallbackformula),
                       over = "bestmodel")
-bestfit[[3]]
 
 ####### SINGLECLUSTER MODEL #######
 bestmal$constantone <- factor(1)
@@ -202,8 +201,6 @@ singleclusterfit <- batch_bam(data = bestmal,
                                             "nthread" = parallel::detectCores(logical=FALSE)-1),
                               bamargs_fallback = list("formula" = fallbackformula),
                               over = "constantone")
-
-
 
 # ####### SATURATED MODEL #######
 # saturatedformula <- paste("s(",
@@ -240,6 +237,14 @@ bestmal$trendfit <- predict(trendfit, newdata=bestmal)
 bestmal$trendres <- bestmal$objective - bestmal$trendfit
 ggplot(bestmal) + geom_hex(aes(x=date, y=trendres)) +
   ggtitle("residual after removing quartic per woreda")
+# # take means of residuals by placeid and doy
+# bestmal$doy <- as.numeric(format(bestmal$date, "%j"))
+# residbydoy <- dplyr::summarise(group_by(bestmal, placeid, doy),
+#                                trendres=mean(trendres, na.rm=TRUE))
+# ggplot(residbydoy) + geom_hex(aes(x=date, y=trendres)) +
+#   ggtitle("residual after removing quartic per woreda, by doy")
+#
+
 # calculate Fourier coefficients for the remaining stuff
 fouriers <- data.frame()
 for (curplaceid in unique(bestmal$placeid)) {
@@ -330,6 +335,21 @@ bestmal$kmeans_pred <- bestmal$trendfit + bestmal$resid
 
 ggplot(bestmal) + geom_hex(aes(x=objective, y=kmeans_pred)) +
   geom_abline(slope=1, intercept=0, linetype=2, color="red")
+
+# ####### PRINCOMP MODEL #######
+# head(env)
+# envnames <- colnames(env)
+# envnames <- envnames[!(envnames %in% c("placeid", "date", "doy", "year"))]
+# myprincomp <- princomp(x=env[,envnames],
+#                        cor=TRUE,
+#                        scores=TRUE,
+#                        fix_sign=TRUE)
+# cumsum(myprincomp$sdev/sum(myprincomp$sdev))
+
+
+
+
+
 
 # # get summaries
 # bestsummary <- clusterapply::summary.batch_bam(modelfit)
