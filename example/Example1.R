@@ -5,7 +5,7 @@ packages <- c("ggplot2", "plyr", "dplyr",
               "mgcv", "splines", "parallel", "splitstackshape",
               "data.table", "quantreg", "MASS",
               "sf", "maptools", "spdep", "igraph","gaffer",
-              "clusterapply", "lwgeom")
+              "clusterapply", "lwgeom", "dtwclust")
 for (package in packages) {
   if (!require(package, character.only=T, quietly=T)) {
     install.packages(package, install.packages(package, repos = "http://cran.us.r-project.org"))
@@ -336,19 +336,58 @@ bestmal$kmeans_pred <- bestmal$trendfit + bestmal$resid
 ggplot(bestmal) + geom_hex(aes(x=objective, y=kmeans_pred)) +
   geom_abline(slope=1, intercept=0, linetype=2, color="red")
 
-# ####### PRINCOMP MODEL #######
-# head(env)
-# envnames <- colnames(env)
-# envnames <- envnames[!(envnames %in% c("placeid", "date", "doy", "year"))]
-# myprincomp <- princomp(x=env[,envnames],
-#                        cor=TRUE,
+# # ####### PRINCOMP MODEL #######
+# # head(env)
+# # envnames <- colnames(env)
+# # envnames <- envnames[!(envnames %in% c("placeid", "date", "doy", "year"))]
+# # myprincomp <- princomp(x=env[,envnames],
+# #                        cor=TRUE,
+# #                        scores=TRUE,
+# #                        fix_sign=TRUE)
+# # cumsum(myprincomp$sdev/sum(myprincomp$sdev))
+#
+# # create distributed lag summaries
+# matlist <- grep(x=colnames(bestmal),
+#                 pattern="mat",
+#                 fixed=TRUE,
+#                 value=TRUE)
+# matlist <- matlist[!(matlist %in% "lagmat")]
+# for (curmat in matlist) {
+#
+#   mymat <- bestmal[,curmat]
+#
+#   summarydf <- 3
+#   myknots <- seq(from=0, to=dim(mymat)[2]-1, length.out=summarydf-2)
+#   myknots <- myknots[-1]
+#   myknots <- myknots[-length(myknots)]
+#   myboundaries <- c(0, 180)
+#   splinebasis <- bs(x=seq(from=0,
+#                           to=dim(mymat)[2]-1,
+#                           by=1),
+#                     knots=myknots,
+#                     intercept=TRUE)
+#
+#   # replace full lagged data with bspline basis summary
+#   tempdf <- bestmal[,curmat] %*% splinebasis
+#   for (i in 1:dim(tempdf)[2]) {
+#
+#     tempdf2 <- as.data.frame(tempdf[,i])
+#     colnames(tempdf2) <- paste(curmat, "bssum", i, sep="_")
+#     bestmal <- bind_cols(bestmal, tempdf2)
+#
+#   }
+#
+# }
+# colnames(bestmal)
+# myprincomp <- princomp(bestmal[,grep(x=colnames(bestmal),
+#                                      pattern="_bssum_",
+#                                      fixed=TRUE,
+#                                      value=TRUE)],
 #                        scores=TRUE,
-#                        fix_sign=TRUE)
-# cumsum(myprincomp$sdev/sum(myprincomp$sdev))
-
-
-
-
+#                        cor=TRUE)
+#
+# # remove long-term and cyclicity
+# prelimprincomp <-
 
 
 # # get summaries
@@ -373,6 +412,16 @@ ggplot(bestmal) + geom_hex(aes(x=objective, y=kmeans_pred)) +
 #   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
 #   xlim(0,1) + ylim(0,1) +
 #   xlab("singlecluster performance") + ylab("gaffer performance")
+
+####### BASIC TS CLUSTERING #######
+# remove the long-term trend from every placeid
+trendfit <- lm(objective ~ poly(numdate, 4)*placeid,
+               data=bestmal)
+bestmal$trendfit <- predict(trendfit, newdata=bestmal)
+bestmal$trendres <- bestmal$objective - bestmal$trendfit
+
+
+
 
 ####### MODEL EVALUATION AND PLOTTING #######
 distributedlags <- data.frame()
