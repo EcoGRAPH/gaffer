@@ -734,7 +734,7 @@ for (i in 1:length(overs)) {
       mal$toplot <- mal[,thisover]
 
       thisplot <- ggplot(mal) + geom_line(aes(x=date,
-                                              y=objective,
+                                              y=objective-trendfit,
                                               group=placeid)) +
         facet_wrap(~toplot, ncol=2, scales="free") +
         ggtitle(names(overs)[i])
