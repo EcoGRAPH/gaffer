@@ -1,6 +1,6 @@
 rm(list=ls())
 
-packages <- c("ggplot2", "plyr", "dplyr",
+packages <- c("ggplot2", "plyr", "dplyr", "tidyr",
               "tidyverse", "reshape2", "pracma",
               "mgcv", "splines", "parallel", "splitstackshape",
               "data.table", "quantreg", "MASS",
@@ -36,7 +36,7 @@ mal$objective <- mal$robustified2
 # screen those which have very small counts
 sumcases <- dplyr::summarise(group_by(mal, placeid),
                              sumobjective=sum(exp(objective), na.rm=TRUE))
-lowcasethreshold <- quantile(sumcases$sumobjective, probs=c(0.10))
+lowcasethreshold <- quantile(sumcases$sumobjective, probs=c(0.15))
 ggplot(sumcases) + geom_histogram(aes(x=sumobjective)) +
   geom_vline(xintercept=lowcasethreshold, linetype=2, color="red") +
   scale_x_log10()
@@ -111,23 +111,27 @@ rm(tempdf)
 sum(is.na(mal))
 sum(is.na(env))
 
-# call the genetic algorithm
-modelsdf <- geneticimplement(individpergeneration = 2,
-                             initialclusters      = 13,
-                             initialcovars        = 1,
-                             generations          = 2,
-                             modeldata = mal,
-                             envdata = env,
-                             shapefile = shp,
-                             slice = 2)#,
-                             #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_10.csv")
+# # call the genetic algorithm
+# modelsdf <- geneticimplement(individpergeneration = 25,
+#                              initialclusters      = 10,
+#                              initialcovars        = 1,
+#                              generations          = 500,
+#                              modeldata = mal,
+#                              envdata = env,
+#                              shapefile = shp,
+#                              #forcecovariates="lst_day,totprec,ndwi6",
+#                              slice = 5)#,
+#                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\constrained environmentals\\generation_15.csv")
 
-# # load a saved file
-# modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_20.csv")
+# temporary debugging
+modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\constrained environmentals 3\\generation_5.csv")
 
-####### BEST GAFFER MODEL #######
-mybest <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
-curclusterseeds <- unlist(strsplit(x=mybest$clusterseeds,
+# load the outputs from the constrained set
+constraineddf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\constrained environmentals 3\\generation_250.csv")
+
+####### MODEL 1: BEST GAFFER MODEL #######
+model1 <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
+curclusterseeds <- unlist(strsplit(x=model1$clusterseeds,
                                    split=",",
                                    fixed=TRUE))
 curclusters <- data.frame(placeid=rep("", length(curclusterseeds)/2),
@@ -135,121 +139,194 @@ curclusters <- data.frame(placeid=rep("", length(curclusterseeds)/2),
 for (i in 1:(length(curclusterseeds)/2)) {
 
   curclusters$placeid[i] <- curclusterseeds[2*i-1]
-  curclusters$cluster[i] <- as.numeric(curclusterseeds[2*i])
+  curclusters$model1cluster[i] <- as.numeric(curclusterseeds[2*i])
 
 }
 
-# put this back into a map
+# put this back into a map for filling
 shp <- left_join(shp, curclusters, by="placeid")
-shp$bestmodel <- factor(fillbynearest(shapefile=shp,
-                                      covariate=shp$cluster))
-ggplot(shp) + geom_sf(aes(fill=bestmodel))
+shp$model1cluster <- factor(fillbynearest(shapefile=shp, covariate=shp$model1cluster))
+ggplot(shp) + geom_sf(aes(fill=model1cluster))
 
 # evaluate this model
-bestmal <- left_join(mal, shp[c("placeid", "bestmodel")], by="placeid")
-bestvars <- mybest$covars[1]
-bestvars <- unlist(strsplit(x=bestvars,
-                             split=",",
-                             fixed=TRUE))
+mal <- left_join(mal, st_drop_geometry(shp[c("placeid", "model1cluster")]), by="placeid")
+model1vars <- model1$covars[1]
+model1vars <- unlist(strsplit(x=model1vars,
+                              split=",",
+                              fixed=TRUE))
 
 # figure out which type of cyclicals it has
-bestcyclicals <- mybest$cyclicals[1]
-if (bestcyclicals == "none") {
+model1cyclicals <- model1$cyclicals[1]
+if (model1cyclicals == "none") {
 
-  baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1)"
-
-}
-if (bestcyclicals == "percluster") {
-
-  baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2)"
+  model1baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1)"
 
 }
-if (bestcyclicals == "perplaceid") {
+if (model1cyclicals == "percluster") {
 
-  baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', by=placeid, id=2)"
+  model1baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2)"
+
+}
+if (model1cyclicals == "perplaceid") {
+
+  model1baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', by=placeid, id=2)"
 
 }
 
 # create the best model formula
-bestformula <- paste("s(lagmat, by=",
-                     bestvars,
-                     "mat, bs='tp')",
-                     sep="",
-                     collapse="+")
-bestformula <- as.formula(paste(baseformula, bestformula, sep="+"))
+model1formula <- paste("s(lagmat, by=",
+                       model1vars,
+                       "mat, bs='tp')",
+                       sep="",
+                       collapse="+")
+model1formula <- as.formula(paste(model1baseformula, model1formula, sep="+"))
 
 # create formulas in case those fail on some placeids
 basefallback <- "objective ~ s(numdate, id=1) + s(doy, bs='cc', id=2)"
 fallbackformula <- as.formula(basefallback)
 
 # calculate the best fit from the gaffer model
-bestmal$placeid <- factor(bestmal$placeid)
-bestfit  <- batch_bam(data = bestmal,
-                      bamargs = list("formula" = bestformula,
-                                     "family" = gaussian(),
-                                     "discrete" = TRUE,
-                                     "nthread" = parallel::detectCores(logical=FALSE)-1),
-                      bamargs_fallback = list("formula" = fallbackformula),
-                      over = "bestmodel")
-
-####### SINGLECLUSTER MODEL #######
-bestmal$constantone <- factor(1)
-singleclusterfit <- batch_bam(data = bestmal,
-                              bamargs = list("formula" = bestformula,
-                                             "family" = gaussian(),
-                                             "discrete" = TRUE,
-                                            "nthread" = parallel::detectCores(logical=FALSE)-1),
-                              bamargs_fallback = list("formula" = fallbackformula),
-                              over = "constantone")
-
-# ####### SATURATED MODEL #######
-# saturatedformula <- paste("s(",
-#                           bestvars,
-#                           "mat, by=lagmat, bs='tp')",
-#                           sep="",
-#                           collapse="+")
-# saturatedformula  <- as.formula(paste("objective ~ s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2)",
-#                                       saturatedformula, sep="+"))
-# saturatedfit <- batch_bam(data = bestmal,
-#                           bamargs = list("formula" = saturatedformula,
-#                                          "family" = gaussian(),
-#                                          "discrete" = TRUE,
-#                                          "nthread" = parallel::detectCores(logical=FALSE)-1),
-#                           bamargs_fallback = list("formula" = fallbackformula),
-#                           over = "placeid")
+mal$placeid <- factor(mal$placeid)
+model1fit  <- batch_bam(data = mal,
+                        bamargs = list("formula" = model1formula,
+                                       "family" = gaussian(),
+                                       "discrete" = TRUE,
+                                       "nthread" = parallel::detectCores(logical=FALSE)-1),
+                        bamargs_fallback = list("formula" = fallbackformula),
+                        over = "model1cluster")
 
 
-####### SECULAR MODEL #######
-secularformula  <- as.formula("objective ~ placeid + s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2)")
-secularfit   <- batch_bam(data = bestmal,
-                          bamargs = list("formula" = secularformula,
-                                         "family" = gaussian(),
-                                         "discrete" = TRUE,
-                                         "nthread" = parallel::detectCores(logical=FALSE)-1),
-                          bamargs_fallback = list("formula" = fallbackformula),
-                          over = "bestmodel")
 
-####### K-MEANS MODEL #######
+
+
+
+####### MODEL 2: BEST CONSTRAINED MODEL #######
+model2 <- constraineddf[which(constraineddf$modelmeasure == min(constraineddf$modelmeasure, na.rm=TRUE))[1],]
+curclusterseeds <- unlist(strsplit(x=model2$clusterseeds,
+                                   split=",",
+                                   fixed=TRUE))
+curclusters <- data.frame(placeid=rep("", length(curclusterseeds)/2),
+                          cluster=rep(0 , length(curclusterseeds)/2))
+for (i in 1:(length(curclusterseeds)/2)) {
+
+  curclusters$placeid[i] <- curclusterseeds[2*i-1]
+  curclusters$model2cluster[i] <- as.numeric(curclusterseeds[2*i])
+
+}
+
+# put this back into a map for filling
+shp <- left_join(shp, curclusters, by="placeid")
+shp$model2cluster <- factor(fillbynearest(shapefile=shp, covariate=shp$model2cluster))
+ggplot(shp) + geom_sf(aes(fill=model2cluster))
+
+# evaluate this model
+mal <- left_join(mal, st_drop_geometry(shp[c("placeid", "model2cluster")]), by="placeid")
+model2vars <- model2$covars[1]
+model2vars <- unlist(strsplit(x=model2vars,
+                              split=",",
+                              fixed=TRUE))
+
+# figure out which type of cyclicals it has
+model2cyclicals <- model2$cyclicals[1]
+if (model2cyclicals == "none") {
+
+  model2baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1)"
+
+}
+if (model2cyclicals == "percluster") {
+
+  model2baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2)"
+
+}
+if (model2cyclicals == "perplaceid") {
+
+  model2baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', by=placeid, id=2)"
+
+}
+
+# create the best model formula
+model2formula <- paste("s(lagmat, by=",
+                       model2vars,
+                       "mat, bs='tp')",
+                       sep="",
+                       collapse="+")
+model2formula <- as.formula(paste(model2baseformula, model2formula, sep="+"))
+
+# create formulas in case those fail on some placeids
+basefallback <- "objective ~ s(numdate, id=1) + s(doy, bs='cc', id=2)"
+fallbackformula <- as.formula(basefallback)
+
+# calculate the best fit from the gaffer model
+mal$placeid <- factor(mal$placeid)
+model2fit  <- batch_bam(data = mal,
+                        bamargs = list("formula" = model2formula,
+                                       "family" = gaussian(),
+                                       "discrete" = TRUE,
+                                       "nthread" = parallel::detectCores(logical=FALSE)-1),
+                        bamargs_fallback = list("formula" = fallbackformula),
+                        over = "model2cluster")
+
+
+
+
+
+
+
+
+
+
+
+
+
+####### MODEL 3: SINGLECLUSTER MODEL #######
+mal$constantone <- factor(1)
+model3fit <- batch_bam(data = mal,
+                       bamargs = list("formula" = model2formula,
+                                      "family" = gaussian(),
+                                      "discrete" = TRUE,
+                                      "nthread" = parallel::detectCores(logical=FALSE)-1),
+                       bamargs_fallback = list("formula" = fallbackformula),
+                       over = "constantone")
+
+
+
+
+
+
+
+
+
+####### MODEL 4: SECULAR MODEL #######
+model4formula  <- as.formula("objective ~ placeid + s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2)")
+model4fit   <- batch_bam(data = mal,
+                         bamargs = list("formula" = model4formula,
+                                        "family" = gaussian(),
+                                        "discrete" = TRUE,
+                                        "nthread" = parallel::detectCores(logical=FALSE)-1),
+                         bamargs_fallback = list("formula" = fallbackformula),
+                         over = "model1cluster")
+
+
+
+
+
+
+
+
+
+
+####### MODEL 5: K-MEANS MODEL #######
 # remove the long-term trend from every placeid
-trendfit <- lm(objective ~ poly(numdate, 4)*placeid,
-               data=bestmal)
-bestmal$trendfit <- predict(trendfit, newdata=bestmal)
-bestmal$trendres <- bestmal$objective - bestmal$trendfit
-ggplot(bestmal) + geom_hex(aes(x=date, y=trendres)) +
-  ggtitle("residual after removing quartic per woreda")
-# # take means of residuals by placeid and doy
-# bestmal$doy <- as.numeric(format(bestmal$date, "%j"))
-# residbydoy <- dplyr::summarise(group_by(bestmal, placeid, doy),
-#                                trendres=mean(trendres, na.rm=TRUE))
-# ggplot(residbydoy) + geom_hex(aes(x=date, y=trendres)) +
-#   ggtitle("residual after removing quartic per woreda, by doy")
-#
+# trendfit <- gam(objective ~ s(numdate, by=placeid), data=mal)
+trendfit <- lm(objective ~ poly(numdate, 4)*placeid, data=mal)
+mal$trendfit <- predict(trendfit, newdata=mal)
+mal$trendres <- mal$objective - mal$trendfit
 
 # calculate Fourier coefficients for the remaining stuff
 fouriers <- data.frame()
-for (curplaceid in unique(bestmal$placeid)) {
+for (curplaceid in unique(mal$placeid)) {
 
-  thisplace <- bestmal[bestmal$placeid == curplaceid,]
+  thisplace <- mal[mal$placeid == curplaceid,]
   tempfft   <- data.frame(placeid=curplaceid,
                           fft=fft(thisplace[order(thisplace$numdate),]$trendres),
                           freq=1:nrow(thisplace))
@@ -288,26 +365,26 @@ for (clusters in 1:20) {
                                 wss=mykmeans$tot.withinss))
 
 }
+
 ggplot(wsses) + geom_point(aes(x=clusters, y=wss))
 elbowed <-  kmeans(naivefft[,2:ncol(naivefft)], 13)
-naivefft$fftcluster <- elbowed$cluster
-naivefftcopy$fftcluster <- elbowed$cluster
-shp <- left_join(shp, naivefft[c("placeid", "fftcluster")],
+naivefft$model5cluster <- elbowed$cluster
+naivefftcopy$model5cluster <- elbowed$cluster
+shp <- left_join(shp, naivefft[c("placeid", "model5cluster")],
                  by="placeid")
-shp$fftcluster <- factor(shp$fftcluster)
-ggplot(shp) + geom_sf(aes(fill=fftcluster))
+shp$model5cluster <- factor(shp$model5cluster)
 
 # reconstruct the time series
 fouriers <- left_join(fouriers,
-                      naivefftcopy[c("placeid", "fftcluster")],
+                      naivefftcopy[c("placeid", "model5cluster")],
                       by="placeid")
-reconfft <- dplyr::summarise(group_by(fouriers, fftcluster, freq),
+reconfft <- dplyr::summarise(group_by(fouriers, model5cluster, freq),
                              meanfft = mean(fft))
 
 reconresiduals <- data.frame()
-for (curcluster in unique(reconfft$fftcluster)) {
+for (curcluster in unique(reconfft$model5cluster)) {
 
-  thiscluster <- reconfft[reconfft$fftcluster == curcluster,]
+  thiscluster <- reconfft[reconfft$model5cluster == curcluster,]
   tempfft   <- data.frame(cluster=curcluster,
                           resid=fft(thiscluster$meanfft, inverse=TRUE))
   tempfft$nobs <- 1:nrow(tempfft)
@@ -317,132 +394,150 @@ for (curcluster in unique(reconfft$fftcluster)) {
 }
 # normalize
 reconresiduals$resid <- Real(reconresiduals$resid) / max(reconresiduals$nobs)
-reconresiduals$cluster <- factor(reconresiduals$cluster)
-
-ggplot(reconresiduals) + geom_line(aes(x=nobs, y=resid, group=cluster, color=cluster))
+reconresiduals$model5cluster <- factor(reconresiduals$cluster)
 
 # add reconstructed residuals back to model
-bestmal <- bestmal[order(bestmal$placeid, bestmal$numdate),]
-bestmal$nobs <- rowid(bestmal$placeid)
-bestmal <- left_join(bestmal, naivefftcopy[c("placeid", "fftcluster")],
-                     by="placeid")
-bestmal$fftcluster <- factor(bestmal$fftcluster)
-bestmal <- left_join(bestmal, reconresiduals,
-                     by=c("fftcluster"="cluster", "nobs"))
+mal <- mal[order(mal$placeid, mal$numdate),]
+mal$nobs <- rowid(mal$placeid)
+mal <- left_join(mal, naivefftcopy[c("placeid", "model5cluster")],
+                 by="placeid")
+mal$model5cluster <- factor(mal$model5cluster)
+mal <- left_join(mal, reconresiduals,
+                 by=c("model5cluster"="model5cluster", "nobs"))
 
 # reconstruct the observation
-bestmal$kmeans_pred <- bestmal$trendfit + bestmal$resid
-
-ggplot(bestmal) + geom_hex(aes(x=objective, y=kmeans_pred)) +
-  geom_abline(slope=1, intercept=0, linetype=2, color="red")
-
-# # ####### PRINCOMP MODEL #######
-# # head(env)
-# # envnames <- colnames(env)
-# # envnames <- envnames[!(envnames %in% c("placeid", "date", "doy", "year"))]
-# # myprincomp <- princomp(x=env[,envnames],
-# #                        cor=TRUE,
-# #                        scores=TRUE,
-# #                        fix_sign=TRUE)
-# # cumsum(myprincomp$sdev/sum(myprincomp$sdev))
-#
-# # create distributed lag summaries
-# matlist <- grep(x=colnames(bestmal),
-#                 pattern="mat",
-#                 fixed=TRUE,
-#                 value=TRUE)
-# matlist <- matlist[!(matlist %in% "lagmat")]
-# for (curmat in matlist) {
-#
-#   mymat <- bestmal[,curmat]
-#
-#   summarydf <- 3
-#   myknots <- seq(from=0, to=dim(mymat)[2]-1, length.out=summarydf-2)
-#   myknots <- myknots[-1]
-#   myknots <- myknots[-length(myknots)]
-#   myboundaries <- c(0, 180)
-#   splinebasis <- bs(x=seq(from=0,
-#                           to=dim(mymat)[2]-1,
-#                           by=1),
-#                     knots=myknots,
-#                     intercept=TRUE)
-#
-#   # replace full lagged data with bspline basis summary
-#   tempdf <- bestmal[,curmat] %*% splinebasis
-#   for (i in 1:dim(tempdf)[2]) {
-#
-#     tempdf2 <- as.data.frame(tempdf[,i])
-#     colnames(tempdf2) <- paste(curmat, "bssum", i, sep="_")
-#     bestmal <- bind_cols(bestmal, tempdf2)
-#
-#   }
-#
-# }
-# colnames(bestmal)
-# myprincomp <- princomp(bestmal[,grep(x=colnames(bestmal),
-#                                      pattern="_bssum_",
-#                                      fixed=TRUE,
-#                                      value=TRUE)],
-#                        scores=TRUE,
-#                        cor=TRUE)
-#
-# # remove long-term and cyclicity
-# prelimprincomp <-
+mal$model5pred <- mal$trendfit + mal$resid
 
 
-# # get summaries
-# bestsummary <- clusterapply::summary.batch_bam(modelfit)
-# singleclustersummary <- clusterapply::summary.batch_bam(singleclusterfit)
-#
-# # get estimated scales
-# bestscales <- unlist(lapply(bestsummary, "[[", "scale"))
-# singleclusterscales <- unlist(lapply(singleclustersummary, "[[", "scale"))
 
-# # look at correlations by woreda
-# gofbyplace <- dplyr::summarise(group_by(bestmal, placeid),
-#                                bestcor = cor(objective, bestpreds, use="complete.obs"),
-#                                singleclustercor = cor(objective, singleclusterpreds, use="complete.obs"))
-# shp <- left_join(shp, gofbyplace, by="placeid")
-# ggplot(shp) + geom_sf(aes(fill=bestcor)) +
-#   scale_fill_gradient2(low="darkblue", mid="lightyellow", high="darkred", midpoint=0.5)
-# ggplot(shp) + geom_sf(aes(fill=singleclustercor)) +
-#   scale_fill_gradient2(low="darkblue", mid="lightyellow", high="darkred", midpoint=0.5)
-#
-# ggplot(shp) + geom_point(aes(x=singleclustercor, y=bestcor)) +
-#   geom_abline(slope=1, intercept=0, linetype=2, color="red") +
-#   xlim(0,1) + ylim(0,1) +
-#   xlab("singlecluster performance") + ylab("gaffer performance")
 
-####### BASIC TS CLUSTERING #######
-# remove the long-term trend from every placeid
-trendfit <- lm(objective ~ poly(numdate, 4)*placeid,
-               data=bestmal)
-bestmal$trendfit <- predict(trendfit, newdata=bestmal)
-bestmal$trendres <- bestmal$objective - bestmal$trendfit
+
+
+
+
+
+
+
+
+####### MODEL 6: K-MEANS MODEL v2 #######
+
+mycoefs <- data.frame()
+for (curplaceid in unique(mal$placeid)) {
+
+  tempdf <- mal[mal$placeid == curplaceid,]
+
+  kmeansv2form <- formula("objective ~ s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2) + s(lagmat, by=lst_meanmat, bs='tp') + s(lagmat, by=ndwi6mat, bs='tp') + s(lagmat, by=totprecmat, bs='tp')")
+  kmeansv2mod <- bam(formula=kmeansv2form,
+                     discrete=TRUE,
+                     data=tempdf,
+                     nthreads=detectCores(logical=FALSE)-1)
+
+  tempdf <- as.data.frame(coef(kmeansv2mod))
+  tempdf$placeid <- curplaceid
+  tempdf$variable <- rownames(tempdf)
+  names(tempdf) <- c("value",
+                     "placeid",
+                     "variable")
+
+  rownames(tempdf) <- NULL
+
+  mycoefs <- bind_rows(mycoefs,
+                       tempdf)
+
+}
+mycoefs <- mycoefs[mycoefs$variable != "(Intercept)",]
+mycoefs <- mycoefs[!grepl(x=mycoefs$variable,
+                          pattern="numdate",
+                          fixed=TRUE),]
+
+mycoefswide <- tidyr::pivot_wider(data=mycoefs,
+                           names_from=variable,
+                           values_from=value)
+for (curcol in 2:ncol(mycoefswide)) {
+
+  mycoefswide[,curcol] <- scale(mycoefswide[,curcol])
+
+}
+# perform a princomp
+mycoefpc <- princomp(mycoefswide[,2:ncol(mycoefswide)],
+                     cor=TRUE,
+                     scores=TRUE)
+mycoefswide_pc <- data.frame(mycoefpc$scores)
+mycoefswide_pc$placeid <- mycoefswide$placeid
+
+wsses <- data.frame()
+for (clusters in 1:20) {
+
+  mykmeans <- kmeans(mycoefswide_pc[,2:(ncol(mycoefswide_pc)-1)],
+                     clusters)
+
+  wsses <- bind_rows(wsses,
+                     data.frame(clusters=clusters,
+                                wss=mykmeans$tot.withinss))
+
+}
+ggplot(wsses) + geom_line(aes(x=clusters,
+                              y=wss))
+
+elbowed <- kmeans(mycoefswide[,2:ncol(mycoefswide_pc)], 6)
+mycoefswide$model6cluster <- elbowed$cluster
+shp <- left_join(shp, mycoefswide[c("placeid", "model6cluster")],
+                 by="placeid")
+mal <- left_join(mal, mycoefswide[c("placeid", "model6cluster")],
+                 by="placeid")
+
+# predict on full model
+mal$placeid <- factor(mal$placeid)
+mal$model6cluster <- factor(mal$model6cluster)
+kmeansv2form <- formula("objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2) + s(lagmat, by=lst_meanmat, bs='tp') + s(lagmat, by=ndwi6mat, bs='tp') + s(lagmat, by=totprecmat, bs='tp')")
+kmeansv2formfall <- formula("objective ~ s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2) + s(lagmat, by=lst_meanmat, bs='tp') + s(lagmat, by=ndwi6mat, bs='tp') + s(lagmat, by=totprecmat, bs='tp')")
+model6fit  <- batch_bam(data = mal,
+                        bamargs = list("formula" = kmeansv2form,
+                                       "family" = gaussian(),
+                                       "discrete" = TRUE,
+                                       "nthread" = parallel::detectCores(logical=FALSE)-1),
+                        bamargs_fallback = list("formula" = kmeansv2formfall),
+                        over = "model6cluster")
+
 
 
 
 
 ####### MODEL EVALUATION AND PLOTTING #######
 distributedlags <- data.frame()
-modelpreds      <- data.frame(placeid   = bestmal$place,
-                              date      = bestmal$date,
-                              objective = bestmal$objective)
+modelpreds      <- data.frame(placeid   = mal$place,
+                              date      = mal$date,
+                              objective = mal$objective)
 modelgofs       <- data.frame()
 shapefilegofs   <- NULL
 # declare which models we're taking smooths from
-whichmodels <- list("singlecluster"=singleclusterfit,
-                    "secular"=secularfit,
-                    "gaffer"=bestfit,
-                    "kmeans"=kmeans)
-# this is really ugly - the batch_bam object should store its over
-overs       <- list("gaffer"="bestmodel",
-                    "singlecluster"="constantone",
-                    "secular"="bestmodel",
-                    "kmeans"=NA)
+whichmodels <- list("1_gaffer"=model1fit,
+                    "2_constrained"=model2fit,
+                    "3_singlecluster"=model3fit,
+                    "4_secular"=model4fit,
+                    "5_kmeans"=NA,
+                    "6_kmeansv2"=model6fit)
+# which overs are we using?
+overs       <- list("1_gaffer"="model1cluster",
+                    "2_constrained"="model2cluster",
+                    "3_singlecluster"="constantone",
+                    "4_secular"="model1cluster",
+                    "5_kmeans"="model5cluster",
+                    "6_kmeansv2"="model6cluster")
+
+# figure out which models we shouldn't predict with batch_bam
+# and which don't have distributed lags
+donotpred <- list("5_kmeans"="model5pred")
+noDLs     <- list("5_kmeans", "6_kmeansv2")
+
+
+
+
+
+# figure out the predictions and compute goodness of fit statistics
 for (whichmodel in names(whichmodels)) {
 
-  if (whichmodel != "kmeans") {
+  if (!(whichmodel %in% names(donotpred))) {
 
     # load the model and its parameters
     thisfit <- whichmodels[[whichmodel]]
@@ -452,7 +547,7 @@ for (whichmodel in names(whichmodels)) {
     modelpreds[,paste(whichmodel, "pred", sep="_")] <- clusterapply::predict.batch_bam(models=thisfit,
                                                           predictargs=NULL,
                                                           over=thisover,
-                                                          newdata=bestmal)
+                                                          newdata=mal)
 
     # define a convenience
     modelpreds$temppred <- modelpreds[,paste(whichmodel, "pred", sep="_")]
@@ -470,13 +565,15 @@ for (whichmodel in names(whichmodels)) {
                                       method="spearman"),
                          MAE_log=mean(abs(modelpreds$objective - modelpreds$temppred)),
                          MAE    =mean(abs(exp(modelpreds$objective) - exp(modelpreds$temppred))))
-    modelgofs <- bind_rows(modelgofs, tempdf)
 
   } else {
 
+    # obtain predictions from the model from somewhere else
+    modelpreds[,paste(whichmodel, "pred", sep="_")] <- mal[,donotpred[[whichmodel]]]
+
     # define a convenience
-    modelpreds$kmeans_pred <- bestmal$kmeans_pred
-    modelpreds$temppred <- bestmal$kmeans_pred
+    modelpreds$temppred <- modelpreds[,paste(whichmodel, "pred", sep="_")]
+
     # get some universal goodness of fit statistics
     tempdf <- data.frame(model=whichmodel,
                          df =NA,
@@ -491,9 +588,10 @@ for (whichmodel in names(whichmodels)) {
                                       method="spearman"),
                          MAE_log=mean(abs(modelpreds$objective - modelpreds$temppred)),
                          MAE    =mean(abs(exp(modelpreds$objective) - exp(modelpreds$temppred))))
-    modelgofs <- bind_rows(modelgofs, tempdf)
 
   }
+
+  modelgofs <- bind_rows(modelgofs, tempdf)
 
   # get fit statistics by placeid
   tempdf <- dplyr::summarise(group_by(modelpreds, placeid),
@@ -509,7 +607,8 @@ for (whichmodel in names(whichmodels)) {
   # delete convenience variable
   modelpreds$temppred <- NULL
 
-  if (whichmodel != "kmeans") {
+  # figure out the distributed lags, if appropriate
+  if (!(whichmodel %in% noDLs)) {
 
     # extract its distributed lags
     for (i in 1:length(thisfit)) {
@@ -541,7 +640,6 @@ for (whichmodel in names(whichmodels)) {
 distributedlags$variable <- unlist(lapply(strsplit(x=distributedlags$variable,
                                             split=":",
                                             fixed=TRUE), "[[", 2))
-
 
 # display distributed lags
 distributedlags$model_cluster <- paste(distributedlags$model,
@@ -580,26 +678,68 @@ ggplot(reverseshp) + geom_sf(aes(fill=spearman)) +
                        midpoint=0.5) +
   facet_wrap(~model)
 
-# plot time series
-for (curplaceid in unique(modelpreds$placeid)) {
+# # plot time series
+# for (curplaceid in unique(modelpreds$placeid)) {
+#
+#   tempdf <- modelpreds[modelpreds$placeid == curplaceid,]
+#   thisplot <- ggplot(tempdf) + geom_line(aes(x=date,
+#                                              y=objective,
+#                                              group=name),
+#                                          color="black") +
+#     geom_line(aes(x=date, y=value,
+#                   group=name,
+#                   color=name,
+#                   linetype=name)) +
+#     ggtitle(curplaceid) +
+#     theme(legend.position="bottom")
+#   ggsave(thisplot,
+#          file=paste(".\\time series outputs\\",
+#                curplaceid,
+#                ".png", sep=""))
+#
+#
+# }
 
-  tempdf <- modelpreds[modelpreds$placeid == curplaceid,]
-  thisplot <- ggplot(tempdf) + geom_line(aes(x=date,
-                                             y=objective,
-                                             group=name),
-                                         color="black") +
-    geom_line(aes(x=date, y=value,
-                  group=name,
-                  color=name,
-                  linetype=name)) +
-    ggtitle(curplaceid) +
-    theme(legend.position="bottom")
-  ggsave(thisplot,
-         file=paste(".\\time series outputs\\",
-               curplaceid,
-               ".png", sep=""))
+# plot maps
+stackshp <- data.frame()
+tempovers <- overs[!is.na(overs)]
+for (i in 1:length(tempovers)) {
 
+  # get list of models
+  tempdf <- mal[c("placeid", tempovers[[i]])]
+  names(tempdf)[2] <- "cluster"
+
+  # uniquify
+  tempdf <- distinct(tempdf, .keep_all=TRUE)
+
+  # add model to list
+  tempdf$model <- names(tempovers)[i]
+  stackshp <- bind_rows(stackshp, tempdf)
 
 }
+stackshp <- left_join(stackshp,
+                      shp[c("placeid", "geometry")],
+                      by="placeid")
+st_geometry(stackshp) <- stackshp$geometry
+stackshp$cluster <- factor(stackshp$cluster)
+ggplot(stackshp) + geom_sf(aes(fill=cluster)) +
+  facet_wrap(~model, ncol=2)
 
-View(modelgofs)
+# plot time series
+for (i in 1:length(overs)) {
+
+  if (!is.na(overs[[i]])) {
+
+      thisover <- overs[[i]]
+      mal$toplot <- mal[,thisover]
+
+      thisplot <- ggplot(mal) + geom_line(aes(x=date,
+                                              y=objective,
+                                              group=placeid)) +
+        facet_wrap(~toplot, ncol=2, scales="free") +
+        ggtitle(names(overs)[i])
+      plot(thisplot)
+
+  }
+
+}
