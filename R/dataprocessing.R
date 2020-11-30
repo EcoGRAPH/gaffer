@@ -1,6 +1,7 @@
 dataprocessing <- function(laglen = NULL,
                            modeldata = NULL,
-                           env = NULL){
+                           env = NULL,
+                           maxdeg = 10){
 
   # get list of environmental names
   envnames <- colnames(env)
@@ -67,14 +68,28 @@ dataprocessing <- function(laglen = NULL,
     # and get rid of the lagged data columns
     modeldata[,grep(x=colnames(modeldata), pattern=paste(curenv, "_", sep=""), fixed=TRUE)] <- NULL
 
+    # create the lagged summary statistics
+    for (curtotdf in 2:maxdeg) {
+
+      polybas <- poly(0:(laglen-1),
+                      degree=curtotdf,
+                      simple=TRUE)
+      polybas <- cbind(polybas, rep(1, dim(polybas)[2]))
+
+      modeldata[,paste(curenv, "mat_", curtotdf, sep="")] <- modeldata[,paste(curenv, "mat", sep="")] %*% polybas
+
+    }
+
+    modeldata[,paste(curenv, "mat", sep="")] <- NULL
+
   }
 
-  # create a lagmat for use in regressions
-  modeldata$lagmat <- matrix(rep(0:(laglen-1),
-                                 nrow(modeldata)),
-                             nrow(modeldata),
-                             laglen,
-                             byrow=TRUE)
+  # # create a lagmat for use in regressions
+  # modeldata$lagmat <- matrix(rep(0:(laglen-1),
+  #                                nrow(modeldata)),
+  #                            nrow(modeldata),
+  #                            laglen,
+  #                            byrow=TRUE)
 
   return(list(modeldata,env))
 
