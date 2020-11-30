@@ -119,15 +119,19 @@ sum(is.na(env))
 #                              modeldata = mal,
 #                              envdata = env,
 #                              shapefile = shp,
-#                              #forcecovariates="lst_day,totprec,ndwi6",
-#                              slice = 5)#,
-#                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\constrained environmentals\\generation_15.csv")
+#                              forcecovariates="none",
+#                              slice = 5)
+#                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_345.csv")
 
 # temporary debugging
-modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\constrained environmentals 3\\generation_5.csv")
+modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\unconstrained environmentals\\generation_345.csv")
 
 # load the outputs from the constrained set
 constraineddf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\constrained environmentals 3\\generation_250.csv")
+
+# load the outputs from the secular set
+seculardf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\secular\\generation_425.csv")
+
 
 ####### MODEL 1: BEST GAFFER MODEL #######
 model1 <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
@@ -297,6 +301,26 @@ model3fit <- batch_bam(data = mal,
 
 
 ####### MODEL 4: SECULAR MODEL #######
+model4 <- seculardf[which(seculardf$modelmeasure == min(seculardf$modelmeasure, na.rm=TRUE))[1],]
+curclusterseeds <- unlist(strsplit(x=model4$clusterseeds,
+                                   split=",",
+                                   fixed=TRUE))
+curclusters <- data.frame(placeid=rep("", length(curclusterseeds)/2),
+                          cluster=rep(0 , length(curclusterseeds)/2))
+for (i in 1:(length(curclusterseeds)/2)) {
+
+  curclusters$placeid[i] <- curclusterseeds[2*i-1]
+  curclusters$model4cluster[i] <- as.numeric(curclusterseeds[2*i])
+
+}
+
+# put this back into a map for filling
+shp <- left_join(shp, curclusters, by="placeid")
+shp$model4cluster <- factor(fillbynearest(shapefile=shp, covariate=shp$model4cluster))
+ggplot(shp) + geom_sf(aes(fill=model4cluster))
+
+# evaluate this model
+mal <- left_join(mal, st_drop_geometry(shp[c("placeid", "model4cluster")]), by="placeid")
 model4formula  <- as.formula("objective ~ placeid + s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2)")
 model4fit   <- batch_bam(data = mal,
                          bamargs = list("formula" = model4formula,
@@ -304,7 +328,7 @@ model4fit   <- batch_bam(data = mal,
                                         "discrete" = TRUE,
                                         "nthread" = parallel::detectCores(logical=FALSE)-1),
                          bamargs_fallback = list("formula" = fallbackformula),
-                         over = "model1cluster")
+                         over = "model4cluster")
 
 
 
@@ -426,7 +450,7 @@ for (curplaceid in unique(mal$placeid)) {
 
   tempdf <- mal[mal$placeid == curplaceid,]
 
-  kmeansv2form <- formula("objective ~ s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2) + s(lagmat, by=lst_meanmat, bs='tp') + s(lagmat, by=ndwi6mat, bs='tp') + s(lagmat, by=totprecmat, bs='tp')")
+  kmeansv2form <- formula("objective ~ s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2) + s(lagmat, by=lst_meanmat, bs='tp') + s(lagmat, by=totprecmat, bs='tp')")
   kmeansv2mod <- bam(formula=kmeansv2form,
                      discrete=TRUE,
                      data=tempdf,
@@ -489,8 +513,8 @@ mal <- left_join(mal, mycoefswide[c("placeid", "model6cluster")],
 # predict on full model
 mal$placeid <- factor(mal$placeid)
 mal$model6cluster <- factor(mal$model6cluster)
-kmeansv2form <- formula("objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2) + s(lagmat, by=lst_meanmat, bs='tp') + s(lagmat, by=ndwi6mat, bs='tp') + s(lagmat, by=totprecmat, bs='tp')")
-kmeansv2formfall <- formula("objective ~ s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2) + s(lagmat, by=lst_meanmat, bs='tp') + s(lagmat, by=ndwi6mat, bs='tp') + s(lagmat, by=totprecmat, bs='tp')")
+kmeansv2form <- formula("objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2) + s(lagmat, by=lst_meanmat, bs='tp') + s(lagmat, by=totprecmat, bs='tp')")
+kmeansv2formfall <- formula("objective ~ s(numdate, bs='tp', id=1) + s(doy, bs='cc', id=2) + s(lagmat, by=lst_meanmat, bs='tp') + s(lagmat, by=totprecmat, bs='tp')")
 model6fit  <- batch_bam(data = mal,
                         bamargs = list("formula" = kmeansv2form,
                                        "family" = gaussian(),
@@ -521,7 +545,7 @@ whichmodels <- list("1_gaffer"=model1fit,
 overs       <- list("1_gaffer"="model1cluster",
                     "2_constrained"="model2cluster",
                     "3_singlecluster"="constantone",
-                    "4_secular"="model1cluster",
+                    "4_secular"="model4cluster",
                     "5_kmeans"="model5cluster",
                     "6_kmeansv2"="model6cluster")
 
@@ -552,8 +576,9 @@ for (whichmodel in names(whichmodels)) {
     modelpreds$temppred <- modelpreds[,paste(whichmodel, "pred", sep="_")]
     # get some universal goodness of fit statistics
     tempdf <- data.frame(model=whichmodel,
+                         numclust=length(unique(mal[,thisover])),
                          df =sum(extractAIC.batch_bam(thisfit)$X1),
-                         AIC=sum(extractAIC.batch_bam(thisfit)$X2),
+                         AIC=sum(extractAIC.batch_bam(thisfit)$X2) + (log(nrow(mal)) - 2)*sum(extractAIC.batch_bam(thisfit)$X1) + 200*length(unique(mal[,thisover])),
                          pearson=cor(modelpreds$objective,
                                      modelpreds$temppred,
                                      use="complete.obs",
@@ -575,6 +600,7 @@ for (whichmodel in names(whichmodels)) {
 
     # get some universal goodness of fit statistics
     tempdf <- data.frame(model=whichmodel,
+                         numclust=length(unique(mal[,thisover])),
                          df =NA,
                          AIC=NA,
                          pearson=cor(modelpreds$objective,
@@ -612,7 +638,7 @@ for (whichmodel in names(whichmodels)) {
     # extract its distributed lags
     for (i in 1:length(thisfit)) {
 
-      thisfit_plot <- plot.gam(thisfit[[i]], select=1)
+      thisfit_plot <- plot.gam(thisfit[[i]], select=0)
       for (j in 1:length(thisfit_plot)) {
 
         if (grepl(x=thisfit_plot[[j]]$ylab,
@@ -724,23 +750,49 @@ stackshp$cluster <- factor(stackshp$cluster)
 ggplot(stackshp) + geom_sf(aes(fill=cluster)) +
   facet_wrap(~model, ncol=2)
 
-# plot time series
-for (i in 1:length(overs)) {
+# # plot time series
+# for (i in 1:length(overs)) {
+#
+#   if (!is.na(overs[[i]])) {
+#
+#       thisover <- overs[[i]]
+#       mal$toplot <- mal[,thisover]
+#
+#       tempdf <- dplyr::summarize(group_by(mal, date, toplot),
+#                                  meanforover = mean(objective-trendfit, na.rm=TRUE))
+#
+#       for (j in unique(mal$toplot)) {
+#
+#         tempdf3 <- mal[mal$toplot == j,]
+#         tempdf4 <- tempdf[tempdf$toplot == j,]
+#
+#         thisplot <- ggplot() + geom_line(data=tempdf3,
+#                                          aes(x=date,
+#                                              y=objective-trendfit,
+#                                              group=placeid),
+#                                          alpha=0.5) +
+#           geom_line(data=tempdf4,
+#                     aes(x=date, y=meanforover),
+#                     color="red") +
+#           #facet_wrap(~toplot, ncol=2, scales="free") +
+#           ggtitle(paste(names(overs)[i],
+#                         j,
+#                         sep="-"))
+#         plot(thisplot)
+#
+#       }
+#
+#   }
+#
+# }
 
-  if (!is.na(overs[[i]])) {
+modelgofs[order(modelgofs$AIC),]
 
-      thisover <- overs[[i]]
-      mal$toplot <- mal[,thisover]
+tempdf <- shp[,c("placeid","model1cluster","model2cluster","model4cluster","model5cluster","model6cluster")]
+tempdf <- st_drop_geometry(tempdf)
+tempdf$model3cluster <- 1
 
-      thisplot <- ggplot(mal) + geom_line(aes(x=date,
-                                              y=objective-trendfit,
-                                              group=placeid)) +
-        facet_wrap(~toplot, ncol=2, scales="free") +
-        ggtitle(names(overs)[i])
-      plot(thisplot)
+head(tempdf)
+write.csv(tempdf, file="output clusters.csv")
 
-  }
-
-}
-
-modelgofs
+plot(shp)

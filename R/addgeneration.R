@@ -6,6 +6,7 @@ addgeneration <- function(models=NULL,
                           placeids=NULL,
                           mutationprobabilities=c(0.35, 0.35, 0.10, 0.10, 0.10),
                           mutationtypes=c("deletenode", "addnode", "dropvariable", "addvariable", "cyclicals"),
+                          forcecovariates=NULL,
                           slice=NULL) {
 
   # make absolutely sure all this is random
@@ -85,18 +86,26 @@ addgeneration <- function(models=NULL,
     # if we're deleting a variable
     if (newgen$mutation[i] == "dropvariable") {
 
-      # figure out which variable we're deleting
+      if (is.null(forcecovariates)) {
 
-      if (curcovars != "none") {
+        # figure out which variable we're deleting
 
-        whichtodelete <- sample(1:length(curcovars), size=1)
-        curcovars <- curcovars[-c(whichtodelete)]
+        if (curcovars != "none") {
 
-        if (length(curcovars) > 0) {
+          whichtodelete <- sample(1:length(curcovars), size=1)
+          curcovars <- curcovars[-c(whichtodelete)]
 
-          # assign this new code
-          newcovars <- paste(curcovars, collapse=",")
-          newgen$covars[i] <- newcovars
+          if (length(curcovars) > 0) {
+
+            # assign this new code
+            newcovars <- paste(curcovars, collapse=",")
+            newgen$covars[i] <- newcovars
+
+          } else {
+
+            newgen$covars[i] <- "none"
+
+          }
 
         } else {
 
@@ -106,45 +115,57 @@ addgeneration <- function(models=NULL,
 
       } else {
 
-        newgen$covars[i] <- "none"
+        newgen$covars[i] <- forcecovariates
 
       }
+
+      #newgen$covars[i] <- paste(sample(covariatenames, size=3), collapse=",")
 
     }
 
     # if we're adding a variable
     if (newgen$mutation[i] == "addvariable") {
 
-      # figure out which variable we're adding
-      whichtoadd <- covariatenames[!(covariatenames %in% curcovars)]
+      if (is.null(forcecovariates)) {
 
-      if (length(whichtoadd) > 0) {
+        # figure out which variable we're adding
+        whichtoadd <- covariatenames[!(covariatenames %in% curcovars)]
 
-        whichtoadd <- whichtoadd[sample(1:length(whichtoadd), size=1)]
+        if (length(whichtoadd) > 0) {
 
-        if (curcovars != "none") {
+          whichtoadd <- whichtoadd[sample(1:length(whichtoadd), size=1)]
 
-          curcovars <- c(curcovars, whichtoadd)
+          if (curcovars != "none") {
+
+            curcovars <- c(curcovars, whichtoadd)
+
+          } else {
+
+            curcovars <- whichtoadd
+
+          }
+
+          # assign these new covariates
+          newcovars <- paste(curcovars, collapse=",")
+          newgen$covars[i] <- newcovars
 
         } else {
 
-          curcovars <- whichtoadd
+          newgen$covars[i] <- curcovars
 
         }
 
-        # assign these new covariates
-        newcovars <- paste(curcovars, collapse=",")
-        newgen$covars[i] <- newcovars
-
       } else {
 
-        newgen$covars[i] <- curcovars
+          newgen$covars[i] <- forcecovariates
 
       }
 
+      #newgen$covars[i] <- paste(sample(covariatenames, size=3), collapse=",")
+
     }
 
-    # if we're adding a variable
+    # if we're mutating the cyclicals
     if (newgen$mutation[i] == "cyclicals") {
 
       #newgen$cyclicals[i] <- sample(c("none", "percluster", "perplaceid"), size=1)
