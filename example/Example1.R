@@ -60,6 +60,7 @@ if (!is.null(whichregion)) {
   mal <- mal[mal$placeid %in% woredanames$NewPCODE,]
 
 }
+rm(woredanames)
 # get the shapefile
 shp <- sf::st_read("C:\\home\\work\\davis\\gaffer\\Eth_Admin_Woreda_2019_20200205.shp")
 shp$placeid <- shp$NewPCODE
@@ -111,17 +112,23 @@ rm(tempdf)
 sum(is.na(mal))
 sum(is.na(env))
 
-# # call the genetic algorithm
-# modelsdf <- geneticimplement(individpergeneration = 25,
-#                              initialclusters      = 10,
-#                              initialcovars        = 1,
-#                              generations          = 500,
-#                              modeldata = mal,
-#                              envdata = env,
-#                              shapefile = shp,
-#                              forcecovariates="none",
-#                              slice = 5)
-#                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_345.csv")
+# save the names of the environmental data
+envnames <- colnames(env)
+rm(envframe)
+gc()
+
+
+# call the genetic algorithm
+modelsdf <- geneticimplement(individpergeneration = 20,
+                             initialclusters      = 10,
+                             initialcovars        = 1,
+                             generations          = 2,
+                             modeldata = mal,
+                             envnames = envnames,
+                             shapefile = shp,
+                             #forcecovariates="none",
+                             slice = 5)
+                             #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_345.csv")
 
 # temporary debugging
 modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\unconstrained environmentals\\generation_345.csv")

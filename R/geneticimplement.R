@@ -3,7 +3,7 @@ geneticimplement <- function(individpergeneration = NULL,
                              initialcovars        = NULL,
                              generations          = NULL,
                              modeldata            = NULL,
-                             envdata              = NULL,
+                             envnames             = NULL,
                              shapefile            = NULL,
                              restartfilename      = NULL,
                              forcecovariates      = NULL,
@@ -16,9 +16,7 @@ geneticimplement <- function(individpergeneration = NULL,
   # retain a list of placeids for later
   placeids <- adjacency$placeid
 
-  # set up initial clusters and covariates
-  envnames <- colnames(env)
-  # this next line shouldn't be hardcoded
+  # set up covariates
   envnames <- envnames[!(envnames %in% c("placeid", "date", "year", "doy"))]
 
   # if we do not have a file to load, create the first generation
@@ -27,6 +25,8 @@ geneticimplement <- function(individpergeneration = NULL,
     # set up the first generation of models
     modelsdf <- data.frame(generation=1,
                            mutation="firstgen",
+                           environdf=5,
+                           longtermdf=5,
                            modelnumber=1:individpergeneration,
                            modelmeasure=Inf,
                            selectionprobability=1/individpergeneration)
