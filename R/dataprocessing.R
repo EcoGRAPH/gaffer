@@ -1,6 +1,7 @@
 dataprocessing <- function(laglen = NULL,
                            modeldata = NULL,
-                           env = NULL){
+                           env = NULL,
+                           maxdeg = 10){
 
   # get list of environmental names
   envnames <- colnames(env)
@@ -67,14 +68,31 @@ dataprocessing <- function(laglen = NULL,
     # and get rid of the lagged data columns
     modeldata[,grep(x=colnames(modeldata), pattern=paste(curenv, "_", sep=""), fixed=TRUE)] <- NULL
 
+    # create the lagged summary statistics
+    polybas <- poly(0:(laglen-1),
+                    degree=maxdeg,
+                    simple=TRUE)
+    polybas <- cbind(rep(1, dim(polybas)[2]), polybas)
+    modeldata[,paste(curenv, "mat", sep="")] <- modeldata[,paste(curenv, "mat", sep="")] %*% polybas
+
   }
 
-  # create a lagmat for use in regressions
-  modeldata$lagmat <- matrix(rep(0:(laglen-1),
-                                 nrow(modeldata)),
-                             nrow(modeldata),
-                             laglen,
-                             byrow=TRUE)
+  # create the cyclical summaries
+  modeldata$doy <- as.numeric(format(modeldata$date, "%j"))
+  for (curtotdf in 4:maxdeg) {
+
+    modeldata[,paste("cyclicalmat_", curtotdf, sep="")] <- cSplineDes(x=modeldata$doy,
+                                                                      knots=seq(from=0,
+                                                                                to=366,
+                                                                                length.out=curtotdf+1))
+  }
+
+  # # create a lagmat for use in regressions
+  # modeldata$lagmat <- matrix(rep(0:(laglen-1),
+  #                                nrow(modeldata)),
+  #                            nrow(modeldata),
+  #                            laglen,
+  #                            byrow=TRUE)
 
   return(list(modeldata,env))
 
