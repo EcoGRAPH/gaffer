@@ -94,6 +94,7 @@ evaluategeneration <- function(models=NULL,
 
     tryCatch({
 
+<<<<<<< HEAD
       modelmeasures <- c()
       for (curtrial in 1:3) {
 
@@ -130,6 +131,19 @@ evaluategeneration <- function(models=NULL,
       # numclust <- max(as.numeric(modeldata$cluster), na.rm=TRUE)
       # models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (log(nrow(modeldata)) - 2)*sum(myAICs[,1]) + 200*numclust
       # #models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
+=======
+      # fit the models
+      modelfit <- batch_bam(data = modeldata,
+                            bamargs = list("formula" = modelformula,
+                                           "family" = gaussian(),
+                                           "discrete" = TRUE,
+                                           "nthread" = parallel::detectCores(logical=FALSE)-1),
+                            bamargs_fallback = list("formula" = fallbackformula),
+                            over = "cluster")
+      myAICs <- extractAIC.batch_bam(models=modelfit)
+      #models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (2*log(nrow(modeldata)) - 2)*sum(myAICs[,1])
+      models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
+>>>>>>> parent of 8f94e0a... commit before RRSV
 
       # try cleaning up
       if (curmodelnum < nrow(models)) {
