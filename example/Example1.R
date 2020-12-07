@@ -16,7 +16,7 @@ for (package in packages) {
 options(warn=-1)
 
 # load the harmonized weekly data
-mal <- read.csv("C:\\home\\work\\davis\\gaffer\\robust weekly malaria.csv")
+mal <- read.csv("robust weekly malaria.csv")
 
 # make sure each observation corresponds to a time and a place
 if (isDates(mal$date[1]) == FALSE) {
@@ -44,9 +44,9 @@ sumcases <- sumcases[sumcases$sumobjective <= lowcasethreshold,]
 mal <- mal[!(mal$placeid %in% sumcases$placeid),]
 
 # include the environmental data
-env_brdf <- read.csv("C:\\home\\work\\davis\\gaffer\\Allbrdf2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
-env_prec <- read.csv("C:\\home\\work\\davis\\gaffer\\Allpresp2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
-env_surf <- read.csv("C:\\home\\work\\davis\\gaffer\\Allst2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
+env_brdf <- read.csv("Allbrdf2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
+env_prec <- read.csv("Allpresp2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
+env_surf <- read.csv("Allst2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
 
 # select a region
 whichregion <- "Amhara"
@@ -62,7 +62,7 @@ if (!is.null(whichregion)) {
 }
 rm(woredanames)
 # get the shapefile
-shp <- sf::st_read("C:\\home\\work\\davis\\gaffer\\Eth_Admin_Woreda_2019_20200205.shp")
+shp <- sf::st_read("Eth_Admin_Woreda_2019_20200205.shp")
 shp$placeid <- shp$NewPCODE
 shp$NewPCODE <- NULL
 shp <- shp[shp$placeid %in% mal$placeid,]
@@ -555,7 +555,8 @@ overs       <- list("1_gaffer"="model1cluster",
 # figure out which models we shouldn't predict with batch_bam
 # and which don't have distributed lags
 donotpred <- list("5_kmeans"="model5pred")
-noDLs     <- list("5_kmeans")
+noDLs     <- list("5_kmeans", "6_kmeansv2")
+
 
 
 
@@ -791,5 +792,3 @@ for (i in 1:length(overs)) {
   }
 
 }
-
-modelgofs
