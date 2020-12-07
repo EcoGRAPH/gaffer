@@ -144,8 +144,11 @@ evaluategeneration <- function(models=NULL,
       #models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (2*log(nrow(modeldata)) - 2)*sum(myAICs[,1])
       models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> parent of 8f94e0a... commit before RRSV
 =======
+=======
+>>>>>>> e01a540cce625c4b9ec477cc480d608f22b247aa
 >>>>>>> parent of 8f94e0a... commit before RRSV
 
       # try cleaning up

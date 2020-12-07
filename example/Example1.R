@@ -143,8 +143,11 @@ modelsdf <- geneticimplement(individpergeneration = 20,
 #                              slice = 5)#,
 #                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\constrained environmentals\\generation_15.csv")
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> parent of 8f94e0a... commit before RRSV
 =======
+=======
+>>>>>>> e01a540cce625c4b9ec477cc480d608f22b247aa
 >>>>>>> parent of 8f94e0a... commit before RRSV
 
 # temporary debugging
@@ -751,6 +754,7 @@ ggplot(stackshp) + geom_sf(aes(fill=cluster)) +
 # plot time series
 for (i in 1:length(overs)) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 
   if (!is.na(overs[[i]])) {
 
@@ -765,6 +769,8 @@ for (i in 1:length(overs)) {
       plot(thisplot)
 
 =======
+=======
+>>>>>>> e01a540cce625c4b9ec477cc480d608f22b247aa
 
   if (!is.na(overs[[i]])) {
 
@@ -778,7 +784,10 @@ for (i in 1:length(overs)) {
         ggtitle(names(overs)[i])
       plot(thisplot)
 
+<<<<<<< HEAD
 >>>>>>> parent of 8f94e0a... commit before RRSV
+=======
+>>>>>>> e01a540cce625c4b9ec477cc480d608f22b247aa
   }
 
 }
