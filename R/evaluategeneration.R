@@ -94,44 +94,6 @@ evaluategeneration <- function(models=NULL,
 
     tryCatch({
 
-<<<<<<< HEAD
-      modelmeasures <- c()
-      for (curtrial in 1:3) {
-
-        # select test and training
-        trainingselector <- splitstackshape::stratified(modeldata[c("placeid","reserved_rownum")],
-                                                        group="placeid",
-                                                        size=0.25)
-        training <- modeldata[modeldata$reserved_rownum %in% trainingselector$reserved_rownum,]
-        test <- modeldata[!(modeldata$reserved_rownum %in% trainingselector$reserved_rownum),]
-
-        modelfit <- batch_lm(data = training,
-                             lmargs = list("formula" = modelformula),
-                             over = "cluster")
-        test$preds <- predict.batch_lm(models=modelfit,
-                                       over="cluster",
-                                       newdata=test)
-
-        modelmeasures[length(modelmeasures)+1] <- mean(abs(test$preds - test$objective), na.rm=TRUE)
-
-      }
-
-      models$modelmeasure[curmodelnum] <- mean(modelmeasures)
-
-      # # fit the models
-      # modelfit <- batch_bam(data = modeldata,
-      #                       bamargs = list("formula" = modelformula,
-      #                                      "family" = gaussian(),
-      #                                      "discrete" = TRUE,
-      #                                      "nthread" = parallel::detectCores(logical=FALSE)-1),
-      #                       bamargs_fallback = list("formula" = fallbackformula),
-      #                       over = "cluster")
-      # myAICs <- extractAIC.batch_bam(models=modelfit)
-      #
-      # numclust <- max(as.numeric(modeldata$cluster), na.rm=TRUE)
-      # models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (log(nrow(modeldata)) - 2)*sum(myAICs[,1]) + 200*numclust
-      # #models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
-=======
       # fit the models
       modelfit <- batch_bam(data = modeldata,
                             bamargs = list("formula" = modelformula,
@@ -141,15 +103,8 @@ evaluategeneration <- function(models=NULL,
                             bamargs_fallback = list("formula" = fallbackformula),
                             over = "cluster")
       myAICs <- extractAIC.batch_bam(models=modelfit)
-      #models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (2*log(nrow(modeldata)) - 2)*sum(myAICs[,1])
-      models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> parent of 8f94e0a... commit before RRSV
-=======
-=======
->>>>>>> e01a540cce625c4b9ec477cc480d608f22b247aa
->>>>>>> parent of 8f94e0a... commit before RRSV
+      models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (2*log(nrow(modeldata)) - 2)*sum(myAICs[,1])
+      #models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
 
       # try cleaning up
       if (curmodelnum < nrow(models)) {
