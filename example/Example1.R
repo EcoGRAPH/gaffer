@@ -112,7 +112,6 @@ rm(tempdf)
 sum(is.na(mal))
 sum(is.na(env))
 
-<<<<<<< HEAD
 # save the names of the environmental data
 envnames <- colnames(env)
 rm(envframe)
@@ -120,35 +119,18 @@ gc()
 
 
 # call the genetic algorithm
-modelsdf <- geneticimplement(individpergeneration = 20,
+modelsdf <- geneticimplement(individpergeneration = 25,
                              initialclusters      = 10,
                              initialcovars        = 3,
-                             generations          = 200,
+                             generations          = 500,
                              modeldata = mal,
                              envnames = envnames,
                              shapefile = shp,
                              #forcecovariates="none",
                              slice = 5)
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_345.csv")
-=======
-# # call the genetic algorithm
-# modelsdf <- geneticimplement(individpergeneration = 25,
-#                              initialclusters      = 10,
-#                              initialcovars        = 1,
-#                              generations          = 500,
-#                              modeldata = mal,
-#                              envdata = env,
-#                              shapefile = shp,
-#                              #forcecovariates="lst_day,totprec,ndwi6",
-#                              slice = 5)#,
-#                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\constrained environmentals\\generation_15.csv")
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> parent of 8f94e0a... commit before RRSV
-=======
-=======
->>>>>>> e01a540cce625c4b9ec477cc480d608f22b247aa
->>>>>>> parent of 8f94e0a... commit before RRSV
+
+
 
 # temporary debugging
 modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\constrained environmentals 3\\generation_5.csv")
