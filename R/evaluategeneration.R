@@ -92,10 +92,10 @@ evaluategeneration <- function(models=NULL,
     # have a row number in there for stratification
     modeldata$reserved_rownum <- 1:nrow(modeldata)
 
-    #tryCatch({
+    tryCatch({
 
       modelmeasures <- c()
-      for (curtrial in 1:1) {
+      for (curtrial in 1:3) {
 
         # select test and training
         trainingselector <- splitstackshape::stratified(modeldata[c("placeid","reserved_rownum")],
@@ -104,14 +104,6 @@ evaluategeneration <- function(models=NULL,
         training <- modeldata[modeldata$reserved_rownum %in% trainingselector$reserved_rownum,]
         test <- modeldata[!(modeldata$reserved_rownum %in% trainingselector$reserved_rownum),]
 
-        # # fit the model
-        # modelfit <- lm(data=training, formula=modelformula)
-        #
-        # # evaluate predictions on the test set
-        # test$preds <- predict(modelfit, newdata=test)
-
-        #save(training, file="training.rdata")
-        #save(modelformula, file="modelformula.rdata")
         modelfit <- batch_lm(data = training,
                              lmargs = list("formula" = modelformula),
                              over = "cluster")
@@ -151,16 +143,16 @@ evaluategeneration <- function(models=NULL,
       modeldata$cluster <- NULL
       gc()
 
-    # }, error = function(e) {
-    #
-    #   models$modelmeasure[curmodelnum] <- Inf
-    #   modeldata$cluster <- NULL
-    #
-    #   rm(list=ls())
-    #   gc()
-    #   return(NULL)
-    #
-    # })
+    }, error = function(e) {
+
+      models$modelmeasure[curmodelnum] <- Inf
+      modeldata$cluster <- NULL
+
+      rm(list=ls())
+      gc()
+      return(NULL)
+
+    })
 
   }
 

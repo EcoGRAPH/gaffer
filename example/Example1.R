@@ -121,8 +121,8 @@ gc()
 # call the genetic algorithm
 modelsdf <- geneticimplement(individpergeneration = 20,
                              initialclusters      = 10,
-                             initialcovars        = 1,
-                             generations          = 2,
+                             initialcovars        = 3,
+                             generations          = 200,
                              modeldata = mal,
                              envnames = envnames,
                              shapefile = shp,
