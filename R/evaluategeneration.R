@@ -93,7 +93,7 @@ evaluategeneration <- function(models=NULL,
       # fit the models
       modelfit <- batch_bam(data = modeldata,
                             bamargs = list("formula" = modelformula,
-                                           "family" = gaussian(),
+                                           "family" = poisson(),
                                            "discrete" = TRUE,
                                            "nthread" = parallel::detectCores(logical=FALSE)-1),
                             bamargs_fallback = list("formula" = fallbackformula),
@@ -101,8 +101,8 @@ evaluategeneration <- function(models=NULL,
       myAICs <- extractAIC.batch_bam(models=modelfit)
 
       numclust <- max(as.numeric(modeldata$cluster), na.rm=TRUE)
-      models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (log(nrow(modeldata)) - 2)*sum(myAICs[,1]) + 200*numclust
-      #models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
+      #models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (log(nrow(modeldata)) - 2)*sum(myAICs[,1]) + 200*numclust
+      models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
 
       # try cleaning up
       if (curmodelnum < nrow(models)) {

@@ -31,35 +31,41 @@ mal$NewPCODE <- NULL
 mal <- mal[!is.na(mal$placeid),]
 
 # decide which variable we're modeling
-mal$objective <- mal$robustified2
+mal$objective <- pmax(0,floor(exp(mal$robustified2))-1)
 
-# screen those which have very small counts
-sumcases <- dplyr::summarise(group_by(mal, placeid),
-                             sumobjective=sum(exp(objective), na.rm=TRUE))
-lowcasethreshold <- quantile(sumcases$sumobjective, probs=c(0.15))
-ggplot(sumcases) + geom_histogram(aes(x=sumobjective)) +
-  geom_vline(xintercept=lowcasethreshold, linetype=2, color="red") +
-  scale_x_log10()
-sumcases <- sumcases[sumcases$sumobjective <= lowcasethreshold,]
-mal <- mal[!(mal$placeid %in% sumcases$placeid),]
+# temporarily disable - we do not need this for the 47 woredas
+
+# # screen those which have very small counts
+# sumcases <- dplyr::summarise(group_by(mal, placeid),
+#                              sumobjective=sum(exp(objective), na.rm=TRUE))
+# lowcasethreshold <- quantile(sumcases$sumobjective, probs=c(0.15))
+# ggplot(sumcases) + geom_histogram(aes(x=sumobjective)) +
+#   geom_vline(xintercept=lowcasethreshold, linetype=2, color="red") +
+#   scale_x_log10()
+# sumcases <- sumcases[sumcases$sumobjective <= lowcasethreshold,]
+# mal <- mal[!(mal$placeid %in% sumcases$placeid),]
 
 # include the environmental data
 env_brdf <- read.csv("Allbrdf2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
 env_prec <- read.csv("Allpresp2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
 env_surf <- read.csv("Allst2013-01-01to2019-12-31.csv", stringsAsFactors=TRUE)
 
-# select a region
-whichregion <- "Amhara"
-woredanames <- env_brdf[c("NewPCODE",
-                          "R_NAME",
-                          "W_NAME",
-                          "Z_NAME")]
-if (!is.null(whichregion)) {
+# # select a region
+# whichregion <- "Amhara"
+# woredanames <- env_brdf[c("NewPCODE",
+#                           "R_NAME",
+#                           "W_NAME",
+#                           "Z_NAME")]
+# if (!is.null(whichregion)) {
+#
+#   woredanames <- woredanames[woredanames$R_NAME == whichregion,]
+#   mal <- mal[mal$placeid %in% woredanames$NewPCODE,]
+#
+# }
 
-  woredanames <- woredanames[woredanames$R_NAME == whichregion,]
-  mal <- mal[mal$placeid %in% woredanames$NewPCODE,]
+load("report_data_2018W12am47_poisson_GAcollapsed.rdata")
+mal <- mal[mal$placeid %in% unique(modeling_results_data$NewPCODE),]
 
-}
 rm(woredanames)
 # get the shapefile
 shp <- sf::st_read("Eth_Admin_Woreda_2019_20200205.shp")
@@ -117,23 +123,22 @@ envnames <- colnames(env)
 rm(envframe)
 gc()
 
-
 # call the genetic algorithm
-modelsdf <- geneticimplement(individpergeneration = 25,
-                             initialclusters      = 10,
+modelsdf <- geneticimplement(individpergeneration = 20,
+                             initialclusters      = 3,
                              initialcovars        = 3,
-                             generations          = 500,
+                             generations          = 2,
                              modeldata = mal,
                              envnames = envnames,
                              shapefile = shp,
                              #forcecovariates="none",
-                             slice = 5)
+                             slice = 1)
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_345.csv")
 
 
 
 # temporary debugging
-modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\constrained environmentals 3\\generation_5.csv")
+modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_1.csv")
 
 # load the outputs from the constrained set
 constraineddf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\constrained environmentals 3\\generation_250.csv")
