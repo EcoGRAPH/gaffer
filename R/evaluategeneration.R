@@ -12,24 +12,24 @@ evaluategeneration <- function(models=NULL,
   modeldata$doy     <- as.numeric(format(modeldata$date, "%j"))
 
   # create the basic formula
-  basefallback <- "objective ~ poly(numdate, degree=4)"
+  basefallback <- "objective ~ s(numdate, id=1) + s(doy, bs='cc', id=2)"
 
   # run batch_bam on all the models
   for (curmodelnum in 1:nrow(models)) {
 
     if (models$cyclicals[curmodelnum] == "none") {
 
-      baseformula <- "objective ~ placeid + poly(numdate, degree=4)*placeid"
+      baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1)"
 
     }
     if (models$cyclicals[curmodelnum] == "percluster") {
 
-      baseformula <- "objective ~ placeid + poly(numdate, degree=4)*placeid + cyclicalmat_5"
+      baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', id=2)"
 
     }
     if (models$cyclicals[curmodelnum] == "perplaceid") {
 
-      baseformula <- "objective ~ placeid + poly(numdate, degree=4)*placeid + cyclicalmat_5*placeid"
+      baseformula <- "objective ~ placeid + s(numdate, by=placeid, bs='tp', id=1) + s(doy, bs='cc', by=placeid, id=2)"
 
     }
 
@@ -56,12 +56,11 @@ evaluategeneration <- function(models=NULL,
                                  fixed=TRUE))
     if (curcovars != "none") {
 
-      # covarformula <- paste("s(lagmat, by=",
-      #                       curcovars,
-      #                       "mat, bs='tp')",
-      #                       sep="",
-      #                       collapse="+")
-      covarformula <- paste(curcovars, "mat", sep="", collapse="+")
+      covarformula <- paste("s(lagmat, by=",
+                            curcovars,
+                            "mat, bs='tp')",
+                            sep="",
+                            collapse="+")
       modelformula <- as.formula(paste(baseformula, covarformula, sep="+"))
 
     } else {
@@ -89,9 +88,6 @@ evaluategeneration <- function(models=NULL,
     modeldata$cluster <- factor(modeldata$cluster)
     modeldata$placeid <- factor(modeldata$placeid)
 
-    # have a row number in there for stratification
-    modeldata$reserved_rownum <- 1:nrow(modeldata)
-
     tryCatch({
 
       # fit the models
@@ -103,7 +99,9 @@ evaluategeneration <- function(models=NULL,
                             bamargs_fallback = list("formula" = fallbackformula),
                             over = "cluster")
       myAICs <- extractAIC.batch_bam(models=modelfit)
-      models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (2*log(nrow(modeldata)) - 2)*sum(myAICs[,1])
+
+      numclust <- max(as.numeric(modeldata$cluster), na.rm=TRUE)
+      models$modelmeasure[curmodelnum] <- sum(myAICs[,2]) + (log(nrow(modeldata)) - 2)*sum(myAICs[,1]) + 200*numclust
       #models$modelmeasure[curmodelnum] <- sum(myAICs[,2])
 
       # try cleaning up
@@ -122,7 +120,6 @@ evaluategeneration <- function(models=NULL,
 
       models$modelmeasure[curmodelnum] <- Inf
       modeldata$cluster <- NULL
-
       rm(list=ls())
       gc()
       return(NULL)
