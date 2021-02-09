@@ -6,6 +6,8 @@ geneticimplement <- function(individpergeneration = NULL,
                              envnames             = NULL,
                              shapefile            = NULL,
                              restartfilename      = NULL,
+                             forcecovariate       = NULL,
+                             forcecyclicals       = NULL,
                              slice                = 1) {
 
   adjacency <- shapefile
@@ -46,8 +48,20 @@ geneticimplement <- function(individpergeneration = NULL,
                                          replace=FALSE),
                                   collapse=",")
 
-      #modelsdf$cyclicals[i] <- sample(c("none", "percluster", "perplaceid"), size=1)
-      modelsdf$cyclicals[i] <- sample(c("percluster"), size=1)
+      if (is.null(forcecyclicals)) {
+
+        modelsdf$cyclicals[i] <- sample(c("none", "percluster", "perplaceid"), size=1)
+
+      } else {
+
+        modelsdf$cyclicals[i] <- forcecyclicals
+
+      }
+
+    }
+    if (!is.null(forcecovariate)) {
+
+      modelsdf$covars <- forcecovariate
 
     }
 
@@ -88,7 +102,9 @@ geneticimplement <- function(individpergeneration = NULL,
                               covariatenames=envnames,
                               individualspergeneration=individpergeneration,
                               shapefile=shapefile,
-                              placeids=placeids)#,
+                              placeids=placeids,
+                              forcecovariate=forcecovariate,
+                              forcecyclicals=forcecyclicals)#,
                               #slice=slice)
 
     if (generation %% slice == 0) {

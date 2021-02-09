@@ -2,6 +2,8 @@ addgeneration <- function(models=NULL,
                           modeldata=NULL,
                           individualspergeneration=10,
                           covariatenames=NULL,
+                          forcecovariate=NULL,
+                          forcecyclicals=NULL,
                           shapefile=NULL,
                           placeids=NULL,
                           mutationprobabilities=c(0.35, 0.35, 0.10, 0.10, 0.10),
@@ -147,8 +149,15 @@ addgeneration <- function(models=NULL,
     # if we're adding a variable
     if (newgen$mutation[i] == "cyclicals") {
 
-      newgen$cyclicals[i] <- sample(c("none", "percluster", "perplaceid"), size=1)
-      #newgen$cyclicals[i] <- sample(c("none", "percluster"), size=1)
+      if (is.null(forcecyclicals)) {
+
+        newgen$cyclicals[i] <- sample(c("none", "percluster", "perplaceid"), size=1)
+
+      } else {
+
+        newgen$cyclicals[i] <- forcecyclicals
+
+      }
 
     }
 
@@ -181,6 +190,12 @@ addgeneration <- function(models=NULL,
 
   # make sure we have model numbers
   newgen$modelnumber <- 1:nrow(newgen)
+
+  if (!is.null(forcecovariate)) {
+
+    newgen$covars <- forcecovariate
+
+  }
 
   # currently serves no purpose, but it will
   if (is.null(slice)) {
