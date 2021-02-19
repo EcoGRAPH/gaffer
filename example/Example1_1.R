@@ -54,6 +54,7 @@ if (!is.null(whichregion)) {
 # screen those which have very small counts
 sumcases <- dplyr::summarise(group_by(mal, placeid),
                              sumobjective=sum(exp(objective), na.rm=TRUE))
+# examine the cumulative distribution function of cases to find a pleasant cutoff
 cdfframe <- data.frame(cases = seq(from=min(sumcases$sumobjective, na.rm=TRUE),
                                    to=1000,#max(sumcases$sumobjective, na.rm=TRUE),
                                    length.out=5000))
@@ -81,12 +82,10 @@ oldplaceids <- length(unique(mal$placeid))
 mal <- mal[!(mal$placeid %in% sumcases$placeid),]
 newplaceids <- length(unique(mal$placeid))
 
+# what proportion of placeids have we retained?
 newplaceids / oldplaceids
-
-# load("report_data_2018W12am47_poisson_GAcollapsed.rdata")
-# mal <- mal[mal$placeid %in% unique(modeling_results_data$NewPCODE),]
-
 rm(woredanames)
+
 # get the shapefile
 shp <- sf::st_read("Eth_Admin_Woreda_2019_20200205.shp")
 shp$placeid <- shp$NewPCODE
@@ -104,18 +103,20 @@ rm(env_brdf,
    env_prec,
    env_surf)
 gc()
-# create some variables
+
+# create some standard variables for use in the genetic algorithm
 env$placeid <- env$NewPCODE
 env$NewPCODE <- NULL
 env$date <- as.Date(paste(env$year,
                           env$doy,
                           sep="-"),
                     "%Y-%j")
+
 # make sure we have time and place
 env <- env[!is.na(env$placeid),]
 env <- env[!is.na(env$date),]
 
-# only select those which are going to be used
+# only select environmental data from those districts which are going to be used
 env <- env[env$placeid %in% mal$placeid,]
 
 # create a frame that contains all the necessary environmental observations, missing if necessary
@@ -146,16 +147,18 @@ rm(envframe)
 gc()
 
 #call the genetic algorithm
-modelsdf <- geneticimplement(individpergeneration = 2,
-                             initialclusters      = 3,
-                             initialcovars        = 3,
-                             generations          = 2,
+modelsdf <- geneticimplement(individpergeneration = 2,  # how many individuals per genertaion? 20-ish is fine.
+                             initialclusters      = 3,  # how many clusters do we start with? 10-ish is fine.
+                             initialcovars        = 3,  # how many covariates do our first-generation models have?
+                             generations          = 2,  # how many generations to run?
                              modeldata = mal,
                              envnames = envnames,
                              shapefile = shp,
-                             forcecovariate="totprec,lst_day,ndwi6",
-                             forcecyclicals="percluster",
-                             slice = 1)
+                             forcecovariate="totprec,lst_day,ndwi6", # leave missing if we don't want to force covariates into each model
+                             forcecyclicals="percluster",            # choose from percluster or perplaceid to force cyclicals
+                             slice = 1)                              # how many generations between saves? 1 means save every generation. 5 means every fifth.
+                             # the following parameter would start from generation 110, for example
+                             # if the GA crashed and needed to be restarted
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_110.csv")
 
 # import a model that has already been run, instead of doing the entire GA
@@ -182,8 +185,10 @@ for (currow in 1:nrow(modelsdf)) {
 }
 
 ####### MODEL 1: BEST GAFFER MODEL #######
+# obtain the model with the lowest AIC
 model1 <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
 
+# parse the string containing the cluster seeds so we know how many and where they are
 curclusterseeds <- unlist(strsplit(x=model1$clusterseeds,
                                    split=",",
                                    fixed=TRUE))
@@ -200,7 +205,6 @@ for (i in 1:(length(curclusterseeds)/2)) {
 shp <- left_join(shp, curclusters, by="placeid")
 shp$model1cluster <- factor(fillbynearest(shapefile=shp, covariate=shp$model1cluster))
 shp$model1cluster <- factor(shp$model1cluster)
-
 ggplot(shp) + geom_sf(aes(fill=model1cluster))
 
 # evaluate this model
@@ -210,7 +214,7 @@ model1vars <- unlist(strsplit(x=model1vars,
                               split=",",
                               fixed=TRUE))
 
-# figure out which type of cyclicals it has
+# figure out which type of cyclicals this model has
 model1cyclicals <- model1$cyclicals[1]
 if (model1cyclicals == "none") {
 
@@ -258,7 +262,6 @@ model1fit  <- batch_bam(data = mal,
 
 ####### MODEL 2: MODIFIED MODEL #######
 # randomly change a few pieces of the previous model, so that the comparisons below will be sensible
-
 model2 <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
 model2$covars <- "ndwi6"
 model2$cyclicals <- "percluster"
@@ -454,8 +457,8 @@ ggplot(modelpreds) + geom_hex(aes(x=objective, y=value)) +
   facet_wrap(~name, scales="free")
 
 # save model information for use in epidemia
-# write.csv(st_drop_geometry(shp),
-#           file="modelcodes.csv")
+write.csv(st_drop_geometry(shp),
+          file="modelcodes.csv")
 
 # plot by model
 reverseshp <- left_join(shapefilegofs,
