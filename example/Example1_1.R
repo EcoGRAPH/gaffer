@@ -161,8 +161,10 @@ modelsdf <- geneticimplement(individpergeneration = 2,  # how many individuals p
                              # if the GA crashed and needed to be restarted
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_110.csv")
 
-# import a model that has already been run, instead of doing the entire GA
-modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\21-02-01 - forced covariates on amhara per woreda\\generation_157.csv")
+# gaffer saves files in \\csv outputs\\ that contain information on cluster seeds, environmental
+# covariates, model performance, etc. Any one of these csv files can be loaded instead of running
+# the above function call.
+# modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\21-02-01 - forced covariates on amhara per woreda\\generation_157.csv")
 
 # recover some information about cluster size first, for debugging
 modelsdf$maxcluster <- NA
@@ -261,7 +263,8 @@ model1fit  <- batch_bam(data = mal,
 
 
 ####### MODEL 2: MODIFIED MODEL #######
-# randomly change a few pieces of the previous model, so that the comparisons below will be sensible
+# randomly change a few pieces of the previous model, so that the
+# comparisons below will show differences
 model2 <- modelsdf[which(modelsdf$modelmeasure == min(modelsdf$modelmeasure, na.rm=TRUE))[1],]
 model2$covars <- "ndwi6"
 model2$cyclicals <- "percluster"
