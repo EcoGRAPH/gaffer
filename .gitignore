@@ -2,6 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+#
+data/*
+
+#original list
 Allbrdf2013-01-01to2019-12-31.csv
 Allpresp2013-01-01to2019-12-31.csv
 Allst2013-01-01to2019-12-31.csv
