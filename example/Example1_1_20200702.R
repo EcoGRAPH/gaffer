@@ -1,11 +1,19 @@
 rm(list=ls())
 
-packages <- c("ggplot2", "plyr", "dplyr", "tidyr",
+#DMN: Note the following internal packages needed: "gaffer", "clusterapply"
+devtools::install_github("EcoGRAPH/clusterapply@master")
+#DMN uncomment if needed, but chances you may be developing and have a local build as this IS gaffer
+#devtools::install_github("EcoGRAPH/gaffer@master")
+
+
+packages <- c("rlang", "devtools", #DMN added
+              "ggplot2", "plyr", "dplyr", "tidyr",
               "tidyverse", "reshape2", "pracma",
               "mgcv", "splines", "parallel", "splitstackshape",
               "data.table", "quantreg", "MASS",
-              "sf", "maptools", "spdep", "igraph","gaffer",
-              "clusterapply", "lwgeom", "dtwclust")
+              "sf", "maptools", "spdep", "igraph",
+              "lwgeom", "dtwclust",
+              "gaffer", "clusterapply") #Not CRAN, but should be installed from above, specifically listed last
 for (package in packages) {
   if (!require(package, character.only=T, quietly=T)) {
     install.packages(package, install.packages(package, repos = "http://cran.us.r-project.org"))
@@ -13,8 +21,6 @@ for (package in packages) {
   }
 }
 
-#install.packages("devtools")
-devtools::install_github("EcoGRAPH/clusterapply")
 options(warn=-1)
 
 # load the harmonized weekly data
@@ -43,15 +49,12 @@ env_brdf <- dplyr::bind_rows(env_brdf1, env_brdf2)
 
 env_prec1 <- read_csv("data/env_data/Export_Precip_Data_2013-01-01_2013-12-31.csv")
 env_prec2 <- read_csv("data/env_data/Export_Precip_Data_2014-01-01_2019-12-31.csv")
-env_prec <- dplyr::bind_rows(env_brdf1, env_brdf2)
+env_prec <- dplyr::bind_rows(env_prec1, env_prec2)
 
 env_surf1 <- read_csv("data/env_data/Export_LST_Data_2013-01-01_2013-12-31.csv")
 env_surf2 <- read_csv("data/env_data/Export_LST_Data_2014-01-01_2019-12-31.csv")
-env_surf <- dplyr::bind_rows(env_brdf1, env_brdf2)
+env_surf <- dplyr::bind_rows(env_surf1, env_surf2)
 
-#env_brdf <- read.csv("data/brdf_eth20200702_20130101_20191231.csv", stringsAsFactors=TRUE) #NEED TO CREATE
-#env_prec <- read.csv("data/precip_eth20200702_20130101_20191231.csv", stringsAsFactors=TRUE) #NEED TO CREATE
-#env_surf <- read.csv("data/lst_eth20200702_20130101_20191231.csv", stringsAsFactors=TRUE) #NEED TO CREATE
 
 # select a region
 whichregion <- "Amhara"
@@ -162,10 +165,10 @@ rm(envframe)
 gc()
 
 #call the genetic algorithm
-modelsdf <- geneticimplement(individpergeneration = 2,  # how many individuals per genertaion? 20-ish is fine.
-                             initialclusters      = 3,  # how many clusters do we start with? 10-ish is fine.
+modelsdf <- geneticimplement(individpergeneration = 20,  # how many individuals per genertaion? 20-ish is fine.
+                             initialclusters      = 10,  # how many clusters do we start with? 10-ish is fine.
                              initialcovars        = 3,  # how many covariates do our first-generation models have?
-                             generations          = 100,  # how many generations to run?
+                             generations          = 200,  # how many generations to run?
                              modeldata = mal,
                              envnames = envnames,
                              shapefile = shp,
@@ -175,6 +178,7 @@ modelsdf <- geneticimplement(individpergeneration = 2,  # how many individuals p
                              # the following parameter would start from generation 110, for example
                              # if the GA crashed and needed to be restarted
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_110.csv")
+                             #restartfilename = file.path("csv outputs", "generation_100.csv"))
 
 # gaffer saves files in \\csv outputs\\ that contain information on cluster seeds, environmental
 # covariates, model performance, etc. Any one of these csv files can be loaded instead of running
