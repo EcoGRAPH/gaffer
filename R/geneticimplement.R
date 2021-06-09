@@ -82,7 +82,8 @@ geneticimplement <- function(individpergeneration = NULL,
     modelsdf$selectionprobability[is.na(modelsdf$selectionprobability)] <- 0
 
     # save the first generation
-    write.csv(modelsdf, ".\\csv outputs\\generation_1.csv")
+    #write.csv(modelsdf, ".\\csv outputs\\generation_1.csv")
+    write.csv(modelsfd, file.path("csv outputs", "generation_1.csv"))
 
     # set the minimum generation
     mingeneration <- 2
@@ -110,16 +111,20 @@ geneticimplement <- function(individpergeneration = NULL,
     if (generation %% slice == 0) {
 
       write.csv(modelsdf,
-                paste(".\\csv outputs\\generation_",
-                      generation, ".csv",
-                      sep=""))
+                file.path("csv outputs",
+                          paste0("generation_", generation, ".csv")))
+                #paste(".\\csv outputs\\generation_",
+                #      generation, ".csv",
+                #      sep=""))
 
       thisplot <- ggplot(modelsdf) + geom_point(aes(x=generation,
                                                     y=rank(modelmeasure)))
       ggsave(plot=thisplot,
-             filename=paste(".\\png outputs\\generation_",
-                            generation, ".png",
-                            sep=""))
+             filename= file.path("png outputs",
+                                 paste0("generation_", generation, ".png")))
+             #filename=paste(".\\png outputs\\generation_",
+            #                generation, ".png",
+            #                sep=""))
 
 
     }
