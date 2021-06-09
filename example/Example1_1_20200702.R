@@ -168,17 +168,17 @@ gc()
 modelsdf <- geneticimplement(individpergeneration = 20,  # how many individuals per genertaion? 20-ish is fine.
                              initialclusters      = 10,  # how many clusters do we start with? 10-ish is fine.
                              initialcovars        = 3,  # how many covariates do our first-generation models have?
-                             generations          = 200,  # how many generations to run?
+                             generations          = 300,  # how many generations to run?
                              modeldata = mal,
                              envnames = envnames,
                              shapefile = shp,
                              forcecovariate="totprec,lst_day,ndwi6", # leave missing if we don't want to force covariates into each model
                              forcecyclicals="percluster",            # choose from percluster or perplaceid to force cyclicals
-                             slice = 1)                              # how many generations between saves? 1 means save every generation. 5 means every fifth.
+                             slice = 1,                              # how many generations between saves? 1 means save every generation. 5 means every fifth.
                              # the following parameter would start from generation 110, for example
                              # if the GA crashed and needed to be restarted
                              #restartfilename="C:\\home\\work\\davis\\gaffer\\csv outputs\\generation_110.csv")
-                             #restartfilename = file.path("csv outputs", "generation_100.csv"))
+                             restartfilename = file.path("csv outputs", "generation_199.csv"))
 
 # gaffer saves files in \\csv outputs\\ that contain information on cluster seeds, environmental
 # covariates, model performance, etc. Any one of these csv files can be loaded instead of running
