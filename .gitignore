@@ -2,8 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+
 #
 data/*
+model_outputs/*
 
 #original list
 Allbrdf2013-01-01to2019-12-31.csv
