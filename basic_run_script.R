@@ -3,35 +3,29 @@
 # Modified by Dawn Nekorchuk
 # last date : 2021-06-09
 
-#reset
-rm(list=ls())
-
+#restart R
 
 ## User settings --------------------------------------------------------------
-
-#where to direct model final output (will be in datetime-stamped subfolder)
-#note, while running, the individal gen output goes to the csv output and png output folders
-output_base_folder <- file.path("model_outputs")
-
 
 # select a region
 whichregion <- "Amhara"
 
-
 #settings for geneticimplement()
-gaffer_settings <- c(individpergeneration = 20,  # how many individuals per genertaion? 20-ish is fine.
-                     initialclusters      = 10,  # how many clusters do we start with? 10-ish is fine.
-                     initialcovars        = 3,  # how many covariates do our first-generation models have?
-                     generations          = 200,  # how many generations to run?
-                     modeldata = mal,
-                     envnames = envnames,
-                     shapefile = shp,
-                     forcecovariate="totprec,lst_day,ndwi6", # leave missing if we don't want to force covariates into each model
-                     forcecyclicals="percluster",            # choose from percluster or perplaceid to force cyclicals
-                     slice = 1)                              # how many generations between saves? 1 means save every generation. 5 means every fifth.
+#does not include data sets, which will be passed at the time of the call
+gaffer_settings_nondata <- list(individpergeneration = 20,  # how many individuals per generation? 20-ish is fine.
+                             initialclusters      = 10,  # how many clusters do we start with? 10-ish is fine.
+                             initialcovars        = 3,  # how many covariates do our first-generation models have?
+                             generations          = 200,  # how many generations to run?
+                             forcecovariate="totprec,lst_day,ndwi6", # leave missing if we don't want to force covariates into each model (NULL)
+                             forcecyclicals="percluster",            # choose from percluster or perplaceid to force cyclicals
+                             slice = 1)                              # how many generations between saves? 1 means save every generation. 5 means every fifth.
 # if the GA crashed and needed to be restarted
 # restartfilename = file.path("csv outputs", "generation_199.csv"))
 
+
+#where to direct model final output (will be in datetime-stamped subfolder)
+#note, while running, the individal gen output goes to the csv output and png output folders
+output_base_folder <- file.path("model_outputs")
 
 
 ## Package load ----------------------------------------------------------
@@ -205,6 +199,7 @@ env <- left_join(envframe, env, by=c("placeid", "date"))
 rm(necessarydates)
 
 
+
 ## Lag the environmental data ----------------------------------------------------------
 
 # data lagging process
@@ -225,18 +220,34 @@ rm(envframe)
 gc()
 
 
+
+
 ## Genetic algorithm --------------------------------------------------------------------
 
-
+#pull gaffer_settings_nondata pieces to pass in
+gaffer_settings_nondata
 
 #call the genetic algorithm
-modelsdf <- geneticimplement(gaffer_settings)
+modelsdf <- geneticimplement( individpergeneration = gaffer_settings_nondata$individpergeneration,
+                              initialclusters      = gaffer_settings_nondata$initialclusters,
+                              initialcovars        = gaffer_settings_nondata$initialcovars,
+                              generations          = gaffer_settings_nondata$generations,
+                              forcecovariate       = gaffer_settings_nondata$forcecovariate,
+                              forcecyclicals       = gaffer_settings_nondata$forcecyclicals,
+                              slice                = gaffer_settings_nondata$slice,
+                              #DATA (set here, all others should be set through gaffer_settings_nondata at beginning of script)
+                              modeldata = mal,
+                              envnames = envnames,
+                              shapefile = shp)
 
 # gaffer saves files in \\csv outputs\\ that contain information on cluster seeds, environmental
 # covariates, model performance, etc. Any one of these csv files can be loaded instead of running
 # the above function call.
 # modelsdf <- read.csv("C:\\home\\work\\davis\\gaffer\\csv outputs\\21-02-01 - forced covariates on amhara per woreda\\generation_157.csv")
 
+#######
+# NOTE: Run through 'Write out info and metadata/log file of best model' to properly save finished run
+#######
 
 ## Calculate additional results from geneticimplement return ---------------------------------------------
 
@@ -375,11 +386,10 @@ write.csv(st_drop_geometry(shp_mod1),
 
 
 #write log (here for now)
-gs <- gaffer_settings[!grepl("^modeldata", names(gaffer_settings))]
-gs <- gs[!grepl("^shapefile", names(gs))]
-
-log <- list(gaffer_settings_trim = gs,
-            whichregion = whichregion)
+log <- list(gaffer_settings_nondata = gaffer_settings_nondata,
+            whichregion = whichregion,
+            mal_data_file = mal_data_file,
+            shp_file = shp_file)
 
 #save as rds for now
 saveRDS(log,
