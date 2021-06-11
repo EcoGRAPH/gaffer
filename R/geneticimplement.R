@@ -83,7 +83,7 @@ geneticimplement <- function(individpergeneration = NULL,
 
     # save the first generation
     #write.csv(modelsdf, ".\\csv outputs\\generation_1.csv")
-    write.csv(modelsfd, file.path("csv outputs", "generation_1.csv"))
+    write.csv(modelsdf, file.path("csv outputs", "generation_1.csv"))
 
     # set the minimum generation
     mingeneration <- 2
