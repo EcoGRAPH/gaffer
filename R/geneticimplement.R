@@ -118,7 +118,8 @@ geneticimplement <- function(individpergeneration = NULL,
                 #      sep=""))
 
       thisplot <- ggplot(modelsdf) + geom_point(aes(x=generation,
-                                                    y=rank(modelmeasure)))
+                                                    y=modelmeasure))
+                                                    #y=rank(modelmeasure)))
       ggsave(plot=thisplot,
              filename= file.path("png outputs",
                                  paste0("generation_", generation, ".png")))
