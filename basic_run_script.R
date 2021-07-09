@@ -3,7 +3,7 @@
 # Modified by Dawn Nekorchuk
 # last date : 2021-06-09
 
-#restart R
+#restart R before every new run
 
 ## User settings --------------------------------------------------------------
 
@@ -12,12 +12,12 @@ whichregion <- "Amhara"
 
 #settings for geneticimplement()
 #does not include data sets, which will be passed at the time of the call
-gaffer_settings_nondata <- list(individpergeneration = 20,  # how many individuals per generation? 20-ish is fine.
+gaffer_settings_nondata <- list(individpergeneration = 20,  # how many individuals per generation? 20-ish is fine. #min 2
                              initialclusters      = 10,  # how many clusters do we start with? 10-ish is fine.
                              initialcovars        = 3,  # how many covariates do our first-generation models have?
                              generations          = 200,  # how many generations to run?
                              forcecovariate="totprec,lst_day,ndwi6", # leave missing if we don't want to force covariates into each model (NULL)
-                             forcecyclicals="percluster",            # choose from percluster or perplaceid to force cyclicals
+                             forcecyclicals="perplaceid",            # choose from percluster or perplaceid to force cyclicals
                              slice = 1)                              # how many generations between saves? 1 means save every generation. 5 means every fifth.
 # if the GA crashed and needed to be restarted
 # restartfilename = file.path("csv outputs", "generation_199.csv"))
@@ -316,12 +316,10 @@ p_mod1 <- ggplot() +
   geom_sf(data = shp_mod1, aes(fill = model1cluster)) +
   viridis::scale_fill_viridis(discrete = TRUE, option = "turbo") +
   theme_bw()
-
-ggsave(plot = p_mod1, "cluster_map_model1.jpg",
-       height = 6, width = 7, units = "in")
+p_mod1
 
 # evaluate this model
-mal <- left_join(mal, st_drop_geometry(shp[c("placeid", "model1cluster")]), by="placeid")
+mal <- left_join(mal, st_drop_geometry(shp_mod1[c("placeid", "model1cluster")]), by="placeid")
 model1vars <- model1$covars[1]
 model1vars <- unlist(strsplit(x=model1vars,
                               split=",",
@@ -384,6 +382,9 @@ code_outfile <- paste0("modelcodes_", res_dttm, ".csv")
 write.csv(st_drop_geometry(shp_mod1),
           file = file.path(outpath, code_outfile))
 
+#map of clusters from top model
+ggsave(plot = p_mod1, file.path(outpath, "cluster_map_model1.jpg"),
+       height = 6, width = 7, units = "in")
 
 #write log (here for now)
 log <- list(gaffer_settings_nondata = gaffer_settings_nondata,
@@ -424,9 +425,6 @@ mods_top <- filter(models_tbl, near(modelmeasure, min(models_tbl$modelmeasure)))
 mods_top
 
 mods_top$clusterseeds %>% unique()
-#2021 06 09: all 31 have same clusterseeds, so same map
-
-
 
 
 
